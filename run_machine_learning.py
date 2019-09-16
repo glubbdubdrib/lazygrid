@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019 Giovanni Squillero and Pietro Barbiero
+# Copyright 2019 Pietro Barbiero and Giovanni Squillero
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License.
@@ -15,56 +15,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from itertools import product
-from joblib import dump, load
-import os
-from sklearn import datasets
-import machine_learning
+# import machine_learning
+import templates as tp
+import lazygrid as lz
 
-DATA_DIR = "dump"
-
-
-def patch_filename(name: str) -> str:
-    """Remove special characters"""
-    return name
-
-
-def is_computed(pipeline_step: machine_learning.PiplineStep) -> bool:
-    filename = os.path.join(DATA_DIR, (pipeline_step.name))
-    if not os.path.exists(filename):
-        return False
-    data, version = load(filename)
-    if pipeline_step.version > version:
-        return False
-    return True
-
-
-def generate_data():
-
-    X, y = datasets.make_classification(n_samples=200,
-                                        n_features=50,
-                                        n_informative=5,
-                                        n_redundant=15,
-                                        shuffle=True,
-                                        random_state=42)
-
-    return X, y
+DATA_DIR = "./dump/"
 
 
 def main():
-    for pipeline in product(*machine_learning.PIPELINES):
-        # check if the dump exists
 
-        print("Checking pipeline: %s" % (pipeline,))
-        for step_class in pipeline:
-            if step_class is None:
-                continue
-            step = step_class()
-            if is_computed(step):
-                print("%s:%s already computed\n" % (step.name, step.version))
-            else:
-                print("%s:%s NOT already computed\n" % (step.name,
-                                                        step.version))
+    logger, folder_name = tp.initialize_logging(DATA_DIR,
+                                                "lazygrid-ng",
+                                                no_date=True)
+
+    X_train, y_train, X_test, y_test = lz.generate_data()
+
+    # setup LazyGrid
+    grid = lz.LazyGrid(folder_name)
+    grid.create_cube(lz.PIPELINES)
+
+    # cross validation
+    grid.cross_val_cube(X_train, y_train, logger)
+
+    # blind test
+    logger.info("Starting blind test!")
+    grid.train_cube(X_train, y_train, logger)
+    grid.test_cube(X_test, y_test, logger)
+
+    # compute summary of the results
+    grid.compute_results(save=True)
+
+    tp.close_logging(logger)
+
+    return
 
 
 if __name__ == "__main__":
