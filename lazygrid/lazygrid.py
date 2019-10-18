@@ -15,13 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from itertools import product
-from joblib import dump, load
 import os
-from sklearn import datasets
-from sklearn.model_selection import StratifiedKFold
+import sys
+from itertools import product
+
 import pandas as pd
 import scipy
+from joblib import dump, load
+from sklearn import datasets
+from sklearn.model_selection import StratifiedKFold
+
+sys.path.append("./db_management")
+from db_management import db_add_row, init_database, db_get_row
 
 VERSION = (1, 0)
 
@@ -162,7 +167,9 @@ class LazyGrid(object):
         """
         TODO: comment
         """
-
+        
+        db = init_database("output")
+        
         for pipeline in self.pipelines.values():
 
             logger.info("\tProcessing pipeline %d" % (pipeline.id))
@@ -182,13 +189,23 @@ class LazyGrid(object):
                 # if the step was already computed, just load it!
                 # otherwise, if the current task is about training
                 # then fit the model and save it for the next time!
-                if step.is_computed(filename):
+
+                returned_row = db_get_row(db, filename)
+
+                if len(returned_row) == 1:
+                    with open(filename, 'wb') as pickled_file:
+                        pickled_file.write(returned_row[0][1])
+                        pickled_file.close()
                     model = load(filename)
+                    os.remove(filename)
+                    
                 elif "train" in process_type:
                     model = step.model
                     model.fit(X_t, y)
                     dump(model, filename)
+                    db_add_row(db, filename.split('.')[0].split('/')[1], "./"+ filename)
                     pipeline.fitted_models[process_type].append(filename)
+                    os.remove(filename)
                 else:
                     continue
 
