@@ -1,4 +1,4 @@
-Contributing to MicroGP
+Contributing to LazyGrid
 =======================
 
 First off, thanks for taking the time to contribute! :+1:

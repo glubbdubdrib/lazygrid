@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-
-# Copyright 2019 Pietro Barbiero and Giovanni Squillero
+#
+# Copyright 2019 - Barbiero Pietro and Squillero Giovanni
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License.
@@ -15,28 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from sklearn.feature_selection import RFE, SelectKBest, f_classif
-from sklearn import svm, ensemble, linear_model
-from sklearn import preprocessing
-import copy
-from .lazygrid import generate_data, LazyGrid
-
-classifier_RF = copy.deepcopy(ensemble.RandomForestClassifier)
-classifier_SVC = copy.deepcopy(svm.SVC)
-k = 5
-
-preprocessors = [
-        preprocessing.StandardScaler(),
-        preprocessing.RobustScaler()
-]
-feature_selectors = [
-        RFE(estimator=classifier_RF(), n_features_to_select=k, step=1),
-        SelectKBest(score_func=f_classif, k=k),
-]
-classifiers = [
-        classifier_RF(random_state=42),
-        classifier_SVC(random_state=42),
-]
-
-
-PIPELINES = [preprocessors, feature_selectors, classifiers]
+from .file_logger import initialize_logging, close_logging
+from .datasets import fetch_datasets, load_openml_dataset, load_npy_dataset
+from .statistics import compare_models, keras_classifier, confidence_interval_mean
+from .neural_models import reset_weights, keras_classifier
+from .grid import generate_grid
