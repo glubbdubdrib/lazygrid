@@ -39,7 +39,7 @@ def make_kbest(k: int, method_parameters: dict) -> FeatureSelector:
             if method_parameters["method"].__name__ == "RFE":
                 classifier = copy.deepcopy(method_parameters["helper"])
                 self.feature_selector = feature_selection.RFE(
-                        estimator=classifier, n_features_to_select=k,
+                        estimator=classifier(), n_features_to_select=k,
                         step=method_parameters["step"], verbose=0)
             elif method_parameters["method"].__name__ == "SelectKBest":
                 self.feature_selector = feature_selection.SelectKBest(

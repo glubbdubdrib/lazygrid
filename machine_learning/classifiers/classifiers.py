@@ -34,12 +34,15 @@ def make_classifier(classifier: object) -> Classifier:
             self.name = classifier.__name__
             self.version = (1, 0)
             classifier_copy = copy.deepcopy(classifier)
-            self.classifier = classifier_copy
+            self.classifier = classifier_copy()
 
-        def fit(self, X, y=None, **fit_params):
-            self.classifier.fit(X)
+        def fit(self, X, y, **fit_params):
+            self.classifier.fit(X, y)
 
         def transform(self, X, y=None, **fit_params):
-            return self.classifier.transform(X)
+            return self.classifier.predict(X)
+
+        def score(self, X, y, **fit_params):
+            return self.classifier.score(X, y)
 
     return BasicClassifier

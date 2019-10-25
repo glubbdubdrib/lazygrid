@@ -18,28 +18,28 @@
 from sklearn import feature_selection
 from sklearn import svm, ensemble, linear_model
 from .generic_step import PiplineStep
-from .pre_processors.scalers import StandardScaler
+from .pre_processors.scalers import StandardScaler, RobustScaler
 from .feature_selectors.k_best import make_kbest
 from .classifiers.classifiers import make_classifier
 
-preprocessors = [StandardScaler]
+preprocessors = [StandardScaler, RobustScaler]
 feature_selectors = [
-        make_kbest(k=100,
+        make_kbest(k=5,
                    method_parameters={"method": feature_selection.SelectKBest,
                                       "helper": feature_selection.f_classif}),
 
-        make_kbest(k=10,
-                   method_parameters={"method": feature_selection.SelectKBest,
-                                      "helper": feature_selection.f_classif}),
+#        make_kbest(k=10,
+#                   method_parameters={"method": feature_selection.SelectKBest,
+#                                      "helper": feature_selection.f_classif}),
 
         make_kbest(k=10,  method_parameters={"method": feature_selection.RFE,
-                                             "helper": svm.SVC,
+                                             "helper": ensemble.RandomForestClassifier,
                                              "step": 1}),
 ]
 classifiers = [
         make_classifier(svm.SVC),
-        make_classifier(ensemble.RandomForestClassifier),
-        make_classifier(svm.SVC),
+#        make_classifier(ensemble.RandomForestClassifier),
+#        make_classifier(svm.SVC),
 ]
 
 PIPELINES = [preprocessors, feature_selectors, classifiers]

@@ -35,3 +35,21 @@ class StandardScaler(PreProcessor):
 
     def transform(self, X, y=None, **fit_params):
         return self.scaler.transform(X)
+
+
+class RobustScaler(PreProcessor):
+    """
+    TODO: comment
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = "robust_scaler"
+        self.version = (1, 0)
+        self.scaler = preprocessing.RobustScaler()
+
+    def fit(self, X, y=None, **fit_params):
+        self.scaler.fit(X)
+
+    def transform(self, X, y=None, **fit_params):
+        return self.scaler.transform(X)
