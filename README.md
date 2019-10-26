@@ -212,7 +212,7 @@ First of all, thank you for your contribution!
 
 ## Licence
 
-Copyright 2019 - Barbiero Pietro and Squillero Giovanni.
+Copyright 2019 - Pietro Barbiero and Giovanni Squillero.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not
 use this file except in compliance with the License.

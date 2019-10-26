@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2019 - Barbiero Pietro and Squillero Giovanni
+# Copyright 2019 - Pietro Barbiero and Giovanni Squillero
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License.
@@ -35,7 +35,7 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     url='https://github.com/squillero/lazygrid-ng',
-    author='Barbiero Pietro and Squillero Giovanni',
+    author='Pietro Barbiero and Giovanni Squillero',
     author_email='cleisthenes.megacleos@gmail.com',
     license=license,
     packages=find_packages(exclude=('tests', 'docs')),
