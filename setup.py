@@ -16,22 +16,28 @@
 # limitations under the License.
 
 from setuptools import setup, find_packages
+import pathlib
+import os
 
-with open('README.rst') as f:
+# The directory containing this file
+package_dir = pathlib.Path(__file__).parent
+
+with open(os.path.join(package_dir, 'README.md')) as f:
     readme = f.read()
 
-with open('LICENSE.txt') as f:
+with open(os.path.join(package_dir, 'LICENSE.txt')) as f:
     license = f.read()
 
 setup(
     name='lazygrid',
     version='0.1.0',
-    package_dir={'': '.'},
-    packages=find_packages(exclude=('tests', 'docs')),
+    description='LazyGrid: memoization of ML models',
+    long_description=readme,
+    long_description_content_type="text/markdown",
     url='https://github.com/squillero/lazygrid-ng',
-    license=license,
     author='Barbiero Pietro and Squillero Giovanni',
     author_email='cleisthenes.megacleos@gmail.com',
-    description='LazyGrid: memoization of ML models',
-    long_description=readme
+    license=license,
+    packages=find_packages(exclude=('tests', 'docs')),
+    include_package_data=True,
 )

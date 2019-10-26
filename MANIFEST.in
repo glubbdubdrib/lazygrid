@@ -1,0 +1,4 @@
+include lazygrid/*.md
+include lazygrid/config.ini
+include *.txt
+include *.md
