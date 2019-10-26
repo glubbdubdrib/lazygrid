@@ -10,7 +10,8 @@ First off, thanks for taking the time to contribute! :+1:
 
 ## How Can I Contribute?
 
-* D'ho!?
+* Code review
+* Bug report
 
 ## Coding Style
 
