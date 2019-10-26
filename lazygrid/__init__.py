@@ -17,6 +17,7 @@
 
 from .file_logger import initialize_logging, close_logging
 from .datasets import fetch_datasets, load_openml_dataset, load_npy_dataset
-from .statistics import compare_models, keras_classifier, confidence_interval_mean
+from .statistics import confidence_interval_mean
 from .neural_models import reset_weights, keras_classifier
 from .grid import generate_grid
+from .model_selection import compare_models, cross_validation, confidence_interval_mean, find_best_solution

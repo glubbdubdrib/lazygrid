@@ -26,7 +26,7 @@ with open('LICENSE.txt') as f:
 setup(
     name='lazygrid',
     version='0.1.0',
-    package_dir={'': 'lazygrid'},
+    package_dir={'': '.'},
     packages=find_packages(exclude=('tests', 'docs')),
     url='https://github.com/squillero/lazygrid-ng',
     license=license,
