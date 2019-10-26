@@ -44,9 +44,9 @@ from keras import Sequential
 from tensorflow import set_random_seed
 from keras.utils import to_categorical
 
-from neural_models import keras_classifier, reset_weights
-from database import save_model, load_model, drop_db
-from statistics import find_best_solution, confidence_interval_mean
+from .neural_models import keras_classifier, reset_weights
+from .database import save_model, load_model, drop_db
+from .statistics import find_best_solution, confidence_interval_mean
 
 
 def _is_fitted(step, x: np.ndarray) -> bool:
