@@ -1,5 +1,4 @@
-LazyGrid
-=======================
+# LazyGrid
 
 LazyGrid is a machine learning model comparator that follows 
 the [memoization](https://en.wikipedia.org/wiki/Memoization) paradigm, i.e.
@@ -13,6 +12,7 @@ that is able to save fitted models and return them if required later.
     * [Pipeline generation](#pipeline-generation)
     * [Model comparison](#model-comparison)
     * [Memoization: optimized cross-validation](#memoization-optimized-cross-validation)
+    * [Plots](#plots)
     * [Automatic comparison](#automatic-comparison)
     * [Data sets APIs](#data-sets-apis)
 * [Contributing to LazyGrid](CONTRIBUTING.md)
