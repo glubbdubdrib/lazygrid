@@ -14,13 +14,17 @@
 #
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import functools
 import traceback
+from abc import ABCMeta
+from typing import Union
+
 import numpy as np
 import sys
 from itertools import product
 import copy
 
+from keras import Sequential, Model
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
@@ -73,3 +77,55 @@ def generate_grid(elements: list) -> list:
         pipelines.append(pipeline)
 
     return pipelines
+
+
+def generate_grid_search(model: Union[Sequential, Model, ABCMeta, Pipeline],
+                         model_params: dict, fit_params: dict) -> list:
+    """
+    Generate all possible combinations of models.
+
+    Parameters
+    --------
+    :param model: model architecture
+    :param model_params: model parameters
+    :param fit_params: fit parameters
+    :return: list of sklearn Pipelines
+    """
+
+    models = []
+    keys = []
+    values = []
+    is_for_fit = []
+
+    # fill keys' and values' lists with model parameters
+    for key_model, value_model in model_params.items():
+        keys.append(key_model)
+        values.append(value_model)
+        is_for_fit.append(False)
+
+    # fill keys' and values' lists with fit parameters
+    for key_fit, value_fit in fit_params.items():
+        keys.append(key_fit)
+        values.append(value_fit)
+        is_for_fit.append(True)
+
+    # generate all possible combinations of parameters
+    for values_list in product(*values):
+
+        learner = copy.deepcopy(model)
+
+        # uniquely define model structure
+        model_params_values = [values_list[i] for i in range(0, len(values_list)) if is_for_fit[i] is False]
+        model_params_keys = [keys[i] for i in range(0, len(keys)) if is_for_fit[i] is False]
+        model_params_dict = dict(zip(model_params_keys, model_params_values))
+        learner = learner.build_fn(**model_params_dict)
+
+        # uniquely define fit function
+        fit_params_values = [values_list[i] for i in range(0, len(values_list)) if is_for_fit[i] is True]
+        fit_params_keys = [keys[i] for i in range(0, len(keys)) if is_for_fit[i] is True]
+        fit_params_dict = dict(zip(fit_params_keys, fit_params_values))
+        functools.partial(learner.fit, **fit_params_dict)
+
+        models.append(learner)
+
+    return models
