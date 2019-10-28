@@ -138,10 +138,33 @@ elements = [preprocessors, feature_selectors, classifiers]
 models = lg.generate_grid(elements)
 
 for model in models:
-    score, signature = lg.cross_validation(model=model, x=x, y=y, 
+    score, fitted_models = lg.cross_validation(model=model, x=x, y=y, 
+                                               db_name="database", dataset_id=1, 
+                                               dataset_name="make-classification")
+```
+
+### Plots
+
+LazyGrid includes some standard features for presenting results as plots, among which
+confusion matrixes and box plots.
+
+```python
+from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import make_classification
+import lazygrid as lg
+
+x, y = make_classification(random_state=42)
+
+model = LogisticRegression(random_state=42)
+score, fitted_models = lg.cross_validation(model=model, x=x, y=y, 
                                            db_name="database", dataset_id=1, 
                                            dataset_name="make-classification")
-```
+
+conf_mat = lg.confusion_matrix_aggregate(fitted_models, x, y)
+classes = ["P", "N"]
+title = "Confusion matrix"
+lg.plot_confusion_matrix(conf_mat, classes, "conf_mat.png", title)
+``` 
 
 ### Automatic comparison
 
