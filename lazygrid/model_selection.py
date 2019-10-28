@@ -38,8 +38,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.exceptions import NotFittedError
 from sklearn.feature_selection import SelectKBest, f_classif
 
-from keras import Sequential
-from tensorflow import set_random_seed
+from keras import Sequential, Model
+import tensorflow as tf
+if tf.VERSION >= '2.0.0':
+    from tensorflow.random import set_seed
+    set_random_seed = set_seed
+else:
+    from tensorflow import set_random_seed
 from keras.utils import to_categorical
 
 from .neural_models import reset_weights
@@ -90,8 +95,8 @@ def _is_fitted(step, x: np.ndarray) -> bool:
     return True
 
 
-def _set_random_seed(learner: Union[Sequential, ABCMeta, Pipeline],
-                     random_model: bool, split_index: int, seed: int) -> Union[Sequential, ABCMeta, Pipeline]:
+def _set_random_seed(learner: Union[Sequential, Model, ABCMeta, Pipeline],
+                     random_model: bool, split_index: int, seed: int) -> Union[Sequential, Model, ABCMeta, Pipeline]:
     """
     Set model random seed for the sake of reproducibility.
 
@@ -118,7 +123,7 @@ def _set_random_seed(learner: Union[Sequential, ABCMeta, Pipeline],
     :return: True if step is fitted, False otherwise
     """
 
-    if isinstance(learner, Sequential):
+    if isinstance(learner, Sequential) or isinstance(learner, Model):
 
         # reset model weights if needed
         if random_model:
@@ -138,7 +143,8 @@ def _set_random_seed(learner: Union[Sequential, ABCMeta, Pipeline],
                 else:
                     learner.set_params(**{parameter: seed})
 
-    elif learner._estimator_type == "classifier" and not isinstance(learner, Pipeline):
+    # Learning with other models
+    elif hasattr(learner, "fit") and hasattr(learner, "predict"):
 
         # reset model initialization if needed
         if hasattr(learner, "random_state"):
@@ -150,10 +156,10 @@ def _set_random_seed(learner: Union[Sequential, ABCMeta, Pipeline],
     return learner
 
 
-def _get_learner(model: Union[Sequential, ABCMeta, Pipeline],
+def _get_learner(model: Union[Sequential, Model, ABCMeta, Pipeline],
                  db_name: str, dataset_id: int, dataset_name: str,
                  random_model: bool, split_index: int,
-                 seed: int, fit_params: dict) -> Union[Sequential, ABCMeta, Pipeline]:
+                 seed: int, fit_params: dict) -> Union[Sequential, Model, ABCMeta, Pipeline]:
     """
     Fetch fitted model from database or return the model itself.
 
@@ -186,34 +192,20 @@ def _get_learner(model: Union[Sequential, ABCMeta, Pipeline],
     return learner
 
 
-def _fit(learner: Union[Sequential, ABCMeta, Pipeline],
-         x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray,
-         fit_params: dict):
+def _fit(learner: Union[Sequential, Model, ABCMeta, Pipeline],
+         x_train: np.ndarray, y_train: np.ndarray, fit_params: dict):
     """
     Fit model if it has not been fitted yet.
 
     :param learner: machine learning model
     :param x_train: train data
     :param y_train: train labels
-    :param x_val: validation data
-    :param y_val: validation labels
     :param fit_params: arguments used to specify fit parameters of the model
     :return: fitted model
     """
 
-    # Learning with Keras / Tensorflow
-    if isinstance(learner, Sequential):
-
-        # create one-hot encoding labels if there are more than 2 classes
-        n_classes = len(np.unique(y_train))
-        if n_classes > 2:
-            y_train = to_categorical(y_train)
-
-        if not learner.is_fitted:
-            learner.fit(x_train, y_train, **fit_params)
-
     # Learning with Sklearn Pipeline
-    elif isinstance(learner, Pipeline):
+    if isinstance(learner, Pipeline):
 
         # fit steps only if they are not already fitted
         x_train_t = x_train
@@ -225,48 +217,21 @@ def _fit(learner: Union[Sequential, ABCMeta, Pipeline],
             if hasattr(step[1], "transform"):
                 x_train_t = step[1].transform(x_train_t)
 
-    # Learning with Sklearn models
-    elif learner._estimator_type == "classifier" and not isinstance(learner, Pipeline):
+    # Learning with Sklearn / Keras models
+    elif hasattr(learner, "fit") and hasattr(learner, "predict"):
 
         if not learner.is_fitted:
-            learner.fit(x_train, y_train)
+            learner.fit(x_train, y_train, **fit_params)
 
     return learner
 
 
-def _predict(learner: Union[Sequential, ABCMeta, Pipeline], x: np.ndarray, n_classes: int):
-    """
-    Predict labels for input data.
-
-    :param learner: fitted machine learning model
-    :param x: data
-    :param n_classes: labels
-    :return: predictions
-    """
-
-    # Predictions using Keras / Tensorflow
-    if isinstance(learner, Sequential):
-
-        # predict lables
-        y_pred = learner.predict(x)
-
-        # inverse one-hot encoding transformation if needed
-        if n_classes > 2:
-            y_pred = np.argmax(y_pred, axis=1)
-
-    # Predictions using sklearn models
-    else:
-        y_pred = learner.predict(x)
-
-    return y_pred
-
-
-def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
+def cross_validation(model: Union[Sequential, Model, ABCMeta, Pipeline],
                      x: np.ndarray, y: np.ndarray,
                      db_name: str, dataset_id: int, dataset_name: str,
                      x_val: np.ndarray = None, y_val: np.ndarray = None,
                      random_data: bool = True, random_model: bool = True,
-                     seed: int = 42, n_splits: int = 10, metric: str = "f1",
+                     seed: int = 42, n_splits: int = 10, scoring: Union[Callable, str] = "f1",
                      logger: Logger = None, fit_params: dict = {}) -> (dict, list):
 
     """
@@ -313,7 +278,7 @@ def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
     :param random_model: if True it enables model randomization (if applicable)
     :param seed: seed used to make results reproducible
     :param n_splits: number of cross-validation iterations
-    :param metric: metric used to evaluate the model performance (f1 or accuracy)
+    :param scoring: scoring function used to evaluate the model performance (Callable, f1 or accuracy)
     :param logger: object used to save progress
     :param fit_params: arguments used to specify fit parameters of the model
     :return: cross-validation scores
@@ -325,7 +290,6 @@ def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
     assert isinstance(random_model, bool)
     assert isinstance(seed, int)
     assert isinstance(n_splits, int)
-    assert metric in ["accuracy", "f1"]
     if not random_data:
         assert x_val is not None and y_val is not None
 
@@ -335,11 +299,12 @@ def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
     # Useful variables
     fitted_models = []
     score = {"train_blind": [], "test_blind": [], "train_cv": [], "val_cv": []}
-    if metric == "accuracy":
+    if isinstance(scoring, Callable):
+        score_fun = scoring
+    elif scoring == "accuracy":
         score_fun = accuracy_score
-    elif metric == "f1":
+    elif scoring == "f1":
         score_fun = functools.partial(f1_score, average="weighted")
-    n_classes = len(np.unique(y))
 
     # prepare data for cross-validation
     if random_data:
@@ -368,11 +333,11 @@ def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
         learner = _get_learner(model, db_name, dataset_id, dataset_name, random_model, split_index, seed, fit_params)
 
         # fit learner
-        learner = _fit(learner, x_train, y_train, x_val, y_val, fit_params)
+        learner = _fit(learner, x_train, y_train, fit_params)
 
         # predict
-        y_train_pred = _predict(learner, x_train, n_classes)
-        y_val_pred = _predict(learner, x_val, n_classes)
+        y_train_pred = learner.predict(x_train)
+        y_val_pred = learner.predict(x_val)
 
         # compute score
         score_train = score_fun(y_train, y_train_pred)
@@ -386,7 +351,7 @@ def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
         learner.signature = save_model(learner, split_index, dataset_id, dataset_name, fit_params, db_name)
         fitted_models.append(copy.deepcopy(learner))
 
-        if logger: logger.info("\t%s: train %.4f - validation %.4f" % (metric, score_train, score_val))
+        if logger: logger.info("\t%s: train %.4f - validation %.4f" % (str(scoring), score_train, score_val))
 
         split_index += 1
 

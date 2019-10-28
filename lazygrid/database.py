@@ -25,13 +25,14 @@ import joblib
 import pickle
 import traceback
 from sklearn.pipeline import Pipeline
-from keras.models import Sequential
+from sklearn.model_selection import GridSearchCV
+from keras.models import Sequential, Model
 from tensorflow import Tensor
 from keras import optimizers
 import keras
 
 
-def _get_parameters(model: Union[Sequential, ABCMeta, Pipeline], fit_params: dict) -> tuple:
+def _get_parameters(model: Union[Sequential, Model, ABCMeta, Pipeline], fit_params: dict) -> tuple:
     """
     Return tuple of strings containing attribute names and model parameters.
 
@@ -91,7 +92,7 @@ def _get_parameters(model: Union[Sequential, ABCMeta, Pipeline], fit_params: dic
         except AttributeError:
             continue
 
-    if isinstance(model, Sequential):
+    if isinstance(model, Sequential) or isinstance(model, Model):
 
         for key, value in fit_params.items():
             parameters.append(str(key))
@@ -113,7 +114,7 @@ def _get_parameters(model: Union[Sequential, ABCMeta, Pipeline], fit_params: dic
     return tuple(parameters)
 
 
-def _get_model_name(model: Union[Sequential, ABCMeta, Pipeline]) -> str:
+def _get_model_name(model: Union[Sequential, Model, ABCMeta, Pipeline]) -> str:
     """
     Get name of machine learning model.
 
@@ -131,7 +132,7 @@ def _get_model_name(model: Union[Sequential, ABCMeta, Pipeline]) -> str:
     :return: model name as string
     """
 
-    if isinstance(model, Sequential):
+    if isinstance(model, Sequential) or isinstance(model, Model):
         model_name = str(type(model).__name__)
     else:
         model_name = str(model).split("(")[0]
@@ -139,7 +140,7 @@ def _get_model_name(model: Union[Sequential, ABCMeta, Pipeline]) -> str:
     return model_name
 
 
-def _save(model: Union[Sequential, ABCMeta, Pipeline],
+def _save(model: Union[Sequential, Model, ABCMeta, Pipeline],
           cv_split: int, dataset_id: int, dataset_name: str, fit_params: dict,
           db_name: str = "lazygrid", previous_step_id: int = -1) -> [int, str]:
     """
@@ -210,7 +211,7 @@ def _save(model: Union[Sequential, ABCMeta, Pipeline],
 
     parameters = _get_parameters(model, fit_params)
 
-    if isinstance(model, Sequential):
+    if isinstance(model, Sequential) or isinstance(model, Model):
         temp = os.path.join("./database", "temp.h5")
         model.save(temp)
         with open(temp, 'rb') as input_file:
@@ -262,7 +263,7 @@ def _save(model: Union[Sequential, ABCMeta, Pipeline],
     return step_id, model_name
 
 
-def save_model(model: Union[Sequential, ABCMeta, Pipeline],
+def save_model(model: Union[Sequential, Model, ABCMeta, Pipeline],
                cv_split: int, dataset_id: int, dataset_name: str,
                fit_params: dict, db_name: str = "templates") -> int:
     """
@@ -310,7 +311,7 @@ def save_model(model: Union[Sequential, ABCMeta, Pipeline],
             previous_step_id, previous_step_name = _save(step[1], cv_split, dataset_id, dataset_name, fit_params,
                                                          db_name, previous_step_id)
 
-    elif isinstance(model, Sequential):
+    elif isinstance(model, Sequential) or isinstance(model, Model):
         previous_step_id, previous_step_name = _save(model, cv_split, dataset_id, dataset_name, fit_params, db_name)
 
     elif model._estimator_type == "classifier" and not isinstance(model, Pipeline):
@@ -321,9 +322,9 @@ def save_model(model: Union[Sequential, ABCMeta, Pipeline],
     return model.signature
 
 
-def _load(model: Union[Sequential, ABCMeta, Pipeline],
+def _load(model: Union[Sequential, Model, ABCMeta, Pipeline],
           cv_split: int, dataset_id: int, dataset_name: str, fit_params: dict,
-          db_name: str = "templates", previous_step_id: int = -1) -> tuple([Union[Sequential, ABCMeta, Pipeline], int]):
+          db_name: str = "templates", previous_step_id: int = -1) -> tuple([Union[Sequential, Model, ABCMeta, Pipeline], int]):
     """
     Load fitted model from a database.
 
@@ -407,7 +408,7 @@ def _load(model: Union[Sequential, ABCMeta, Pipeline],
 
     step_id, fitted_model = result
 
-    if isinstance(model, Sequential):
+    if isinstance(model, Sequential) or isinstance(model, Model):
         temp = os.path.join("./database", "temp.h5")
         with open(temp, 'wb') as output_file:
             output_file.write(fitted_model)
@@ -421,9 +422,9 @@ def _load(model: Union[Sequential, ABCMeta, Pipeline],
     return model, step_id
 
 
-def load_model(model: Union[Sequential, ABCMeta, Pipeline],
+def load_model(model: Union[Sequential, Model, ABCMeta, Pipeline],
                cv_split: int, dataset_id: int, dataset_name: str,
-               fit_params: dict, db_name: str = "templates") -> Union[Sequential, ABCMeta, Pipeline]:
+               fit_params: dict, db_name: str = "templates") -> Union[Sequential, Model, ABCMeta, Pipeline]:
     """
     Load fitted model from a database. If the model is a sklearn Pipeline, then each step is loaded separately.
 
@@ -483,7 +484,7 @@ def load_model(model: Union[Sequential, ABCMeta, Pipeline],
                 fitted_model = None
                 break
 
-    elif isinstance(model, Sequential):
+    elif isinstance(model, Sequential) or isinstance(model, Model):
         fitted_model, _ = _load(model, cv_split, dataset_id, dataset_name, fit_params, db_name)
 
     elif model._estimator_type == "classifier" and not isinstance(model, Pipeline):
