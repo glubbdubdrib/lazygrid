@@ -45,7 +45,6 @@ if tf.VERSION >= '2.0.0':
     set_random_seed = set_seed
 else:
     from tensorflow import set_random_seed
-from keras.utils import to_categorical
 
 from .neural_models import reset_weights
 from .database import save_model, load_model, drop_db
