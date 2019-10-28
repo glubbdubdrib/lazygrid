@@ -359,7 +359,7 @@ def cross_validation(model: Union[Sequential, Model, ABCMeta, Pipeline],
 
 
 def _compute_result_summary(models: list, random_data: bool, random_model: bool,
-                            seed: int, n_splits: int, metric: str,
+                            seed: int, n_splits: int, scoring: [Callable, str],
                             test: Callable, alpha: int, cl: float,
                             dataset_id: int, dataset_name: str,
                             train_cv: list, val_cv: list,
@@ -372,7 +372,7 @@ def _compute_result_summary(models: list, random_data: bool, random_model: bool,
     :param random_model: if True it enables model randomization (if applicable)
     :param seed: seed used to make results reproducible
     :param n_splits: number of cross-validation iterations
-    :param metric: metric used to evaluate the model performance (f1 or accuracy)
+    :param scoring: metric used to evaluate the model performance (f1 or accuracy)
     :param test: statistical test
     :param alpha: significance level
     :param cl: confidence level
@@ -398,7 +398,7 @@ def _compute_result_summary(models: list, random_data: bool, random_model: bool,
     base_row = [
         test.__name__,
         alpha,
-        metric,
+        str(scoring),
 
         random_data,
         random_model,
@@ -439,7 +439,7 @@ def compare_models(models: list,
                    x_train: np.ndarray, y_train: np.ndarray, params: list,
                    x_val: np.ndarray = None, y_val: np.ndarray = None,
                    random_data: bool = True, random_model: bool = True,
-                   seed: int = 42, n_splits: int = 10, metric: str = "f1",
+                   seed: int = 42, n_splits: int = 10, scoring: [Callable, str] = "f1",
                    test: Callable = mannwhitneyu, alpha: int = 0.05, cl: float = 0.05,
                    experiment_name: str = "default", db_name: str = "templates",
                    dataset_id: int = None, dataset_name: str = None,
@@ -484,7 +484,7 @@ def compare_models(models: list,
     :param random_model: if True it enables model randomization (if applicable)
     :param seed: seed used to make results reproducible
     :param n_splits: number of cross-validation iterations
-    :param metric: metric used to evaluate the model performance (f1 or accuracy)
+    :param scoring: scoring function used to evaluate the model performance (Callable, f1 or accuracy)
     :param test: statistical test
     :param alpha: significance level
     :param cl: confidence level
@@ -515,7 +515,7 @@ def compare_models(models: list,
         score, fitted_models = cross_validation(model, x=x_train, y=y_train,
                                                 x_val=x_val, y_val=y_val,
                                                 random_data=random_data, random_model=random_model,
-                                                seed=seed, n_splits=n_splits, metric=metric, logger=logger,
+                                                seed=seed, n_splits=n_splits, scoring=scoring, logger=logger,
                                                 db_name=db_name, fit_params=fit_params,
                                                 dataset_id=dataset_id, dataset_name=dataset_name)
         model.signature = fitted_models[-1].signature
@@ -530,7 +530,7 @@ def compare_models(models: list,
 
     # Compute results' summary
     results = _compute_result_summary(models, random_data, random_model,
-                                      seed, n_splits, metric, test, alpha, cl,
+                                      seed, n_splits, scoring, test, alpha, cl,
                                       dataset_id, dataset_name,
                                       train_cv, val_cv, pvalues, best_solutions)
 
