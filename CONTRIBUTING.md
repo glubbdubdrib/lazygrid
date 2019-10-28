@@ -10,8 +10,9 @@ First off, thanks for taking the time to contribute! :+1:
 
 ## How Can I Contribute?
 
-* Code review
+* Obviously source code: patches, as well as completely new files
 * Bug report
+* Code review
 
 ## Coding Style
 

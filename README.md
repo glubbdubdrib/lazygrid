@@ -15,7 +15,7 @@ that is able to save fitted models and return them if required later.
     * [Memoization: optimized cross-validation](#memoization-optimized-cross-validation)
     * [Automatic comparison](#automatic-comparison)
     * [Data sets APIs](#data-sets-apis)
-* [Contributing to LazyGrid](#contributing-to-lazygrid)
+* [Contributing to LazyGrid](CONTRIBUTING.md)
 
 ## Installation
 
@@ -25,9 +25,7 @@ You can install LazyGrid from [PyPI](https://pypi.org/project/lazygrid/):
 $ pip install lazygrid
 ```
 
-Lazygrid is supported on Python 3.5 and above.
-The package is compatible with [scikit-learn 0.21](https://scikit-learn.org/stable/index.html)
-and [Keras 2.2.5](https://keras.io/).
+Lazygrid is known to be working on Python 3.5 and above. The package is compatible with [scikit-learn 0.21](https://scikit-learn.org/stable/index.html) and [Keras 2.2.5](https://keras.io/).
 
 ## How to use
 
@@ -227,15 +225,9 @@ data_id = datasets.loc["iris"].did
 x, y, n_classes = lg.load_openml_dataset(data_id)
 ```
 
-## Contributing to LazyGrid
-
-First of all, thank you for your contribution!
-
-[Here](CONTRIBUTING.md) you can find useful information about contributing to LazyGrid.
-
 ## Licence
 
-Copyright 2019 - Pietro Barbiero and Giovanni Squillero.
+Copyright 2019 Pietro Barbiero and Giovanni Squillero.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not
 use this file except in compliance with the License.
