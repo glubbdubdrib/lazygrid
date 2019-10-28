@@ -225,3 +225,9 @@ the size of the sample, the confidence level, and the variability in the sample.
 A larger sample will tend to produce a better estimate of 
 the population parameter, when all other factors are equal. 
 A higher confidence level will tend to produce a broader confidence interval.
+
+#### Sources
+
+[Wikipedia](https://en.wikipedia.org)
+
+[Machine Learning Mastery](https://machinelearningmastery.com/statistical-hypothesis-tests-in-python-cheat-sheet/)
