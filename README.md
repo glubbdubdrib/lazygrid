@@ -10,6 +10,7 @@ that is able to save fitted models and return them if required later.
 * [Installation](#installation)
 * [How to use](#how-to-use)
     * [Pipeline generation](#pipeline-generation)
+    * [Grid search generation](#grid-search-generation)
     * [Model comparison](#model-comparison)
     * [Memoization: optimized cross-validation](#memoization-optimized-cross-validation)
     * [Plots](#plots)
@@ -59,6 +60,90 @@ classifiers = [RandomForestClassifier(random_state=42), SVC(random_state=42)]
 elements = [preprocessors, feature_selectors, classifiers]
 
 list_of_models = lg.generate_grid(elements)
+```
+
+### Grid search generation
+
+LazyGrid implements a useful functionality to emulate the grid search algorithm 
+by generating all possible models given the model structure and its parameters. 
+
+In this case, you should define a dictionary of arguments for the model
+constructor and a dictionary of arguments for the fit method.
+The `generate_grid_search` method will return the list of all possible models.
+
+The following example illustrates how to use this functionality to compare
+keras models with different optimizers and fit parameters.
+
+```python
+import keras
+from keras import Sequential
+from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from keras.utils import to_categorical
+from sklearn.metrics import f1_score
+from sklearn.datasets import load_digits
+from sklearn.model_selection import StratifiedKFold
+import lazygrid as lg
+import numpy as np
+from keras.wrappers.scikit_learn import KerasClassifier
+
+
+# define keras model generator
+def create_keras_model(optimizer):
+
+    kmodel = Sequential()
+    kmodel.add(Conv2D(32, kernel_size=(5, 5), strides=(1, 1),
+                     activation='relu',
+                     input_shape=x_train.shape[1:]))
+    kmodel.add(MaxPooling2D(pool_size=(2, 2)))
+    kmodel.add(Flatten())
+    kmodel.add(Dense(1000, activation='relu'))
+    kmodel.add(Dense(n_classes, activation='softmax'))
+
+    kmodel.compile(loss=keras.losses.categorical_crossentropy,
+                  optimizer=optimizer,
+                  metrics=['accuracy'])
+    return kmodel
+
+
+# load data set
+x, y = load_digits(return_X_y=True)
+
+skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+list_of_splits = [split for split in skf.split(x, y)]
+train_index, val_index = list_of_splits[0]
+x_train, x_val = x[train_index], x[val_index]
+y_train, y_val = y[train_index], y[val_index]
+x_train = np.reshape(x_train, (x_train.shape[0], 8, 8, 1))
+x_val = np.reshape(x_val, (x_val.shape[0], 8, 8, 1))
+n_classes = len(np.unique(y_train))
+if n_classes > 2:
+    y_train = to_categorical(y_train)
+    y_val = to_categorical(y_val)
+
+
+# cast keras model into sklearn model
+kmodel = KerasClassifier(create_keras_model, verbose=1, epochs=0)
+
+# define all possible model parameters of the grid 
+model_params = {"optimizer": ['SGD', 'RMSprop']}
+fit_params = {"epochs": [5, 10, 20], "batch_size": [10, 20]}
+
+# generate all possible models given the parameters' grid
+models = lg.generate_grid_search(kmodel, model_params, fit_params)
+
+
+# define scoring function for one-hot-encoded lables
+def score_fun(y, y_pred):
+    y = np.argmax(y, axis=1)
+    y_pred = np.argmax(y_pred, axis=1)
+    return f1_score(y, y_pred, average="weighted")
+
+
+# cross validation
+for model in models:
+    score, fitted_models = lg.cross_validation(model=model, x=x_train, y=y_train, x_val=x_val, y_val=y_val,
+                                               db_name="database", dataset_id=1, random_data=False,
+                                               dataset_name="make-classification", n_splits=3, scoring=score_fun)
 ```
 
 ### Model comparison
