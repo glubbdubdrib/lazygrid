@@ -22,22 +22,22 @@ import os
 # The directory containing this file
 package_dir = pathlib.Path(__file__).parent
 
-with open(os.path.join(package_dir, 'README.md')) as f:
-    readme = f.read()
+# with open(os.path.join(package_dir, 'README.md')) as f:
+readme_text = (package_dir / "README.md").read_text()
 
-with open(os.path.join(package_dir, 'LICENSE.txt')) as f:
-    license = f.read()
+# with open(os.path.join(package_dir, 'LICENSE.txt')) as f:
+license_text = (package_dir / 'LICENSE.txt').read_text()
 
 setup(
     name='lazygrid',
-    version='0.1.0',
+    version='0.1.1',
     description='LazyGrid: memoization of ML models',
-    long_description=readme,
+    long_description=readme_text,
     long_description_content_type="text/markdown",
-    url='https://github.com/squillero/lazygrid-ng',
+    url='https://github.com/pietrobarbiero/lazygrid',
     author='Pietro Barbiero and Giovanni Squillero',
     author_email='cleisthenes.megacleos@gmail.com',
-    license=license,
+    license="Apache 2.0",
     packages=find_packages(exclude=('tests', 'docs')),
     include_package_data=True,
 )

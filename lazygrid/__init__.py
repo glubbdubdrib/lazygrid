@@ -16,7 +16,7 @@
 # limitations under the License.
 
 # Version of the lazygrid package
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .file_logger import initialize_logging, close_logging
 from .datasets import fetch_datasets, load_openml_dataset, load_npy_dataset
