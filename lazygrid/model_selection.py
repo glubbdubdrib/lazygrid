@@ -19,18 +19,16 @@ import copy
 import traceback
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
 import pandas as pd
 import os
 import functools
 from typing import Union, Callable
 from abc import ABCMeta
 from logging import Logger
-import joblib
-import re
 
 from scipy import stats
 from scipy.stats import mannwhitneyu
+from statsmodels.stats.proportion import proportion_confint
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score, f1_score
@@ -44,9 +42,9 @@ from keras import Sequential
 from tensorflow import set_random_seed
 from keras.utils import to_categorical
 
-from .neural_models import keras_classifier, reset_weights
+from .neural_models import reset_weights
 from .database import save_model, load_model, drop_db
-from .statistics import find_best_solution, confidence_interval_mean
+from .statistics import find_best_solution, confidence_interval_mean_t
 
 
 def _is_fitted(step, x: np.ndarray) -> bool:
@@ -152,9 +150,23 @@ def _set_random_seed(learner: Union[Sequential, ABCMeta, Pipeline],
     return learner
 
 
-def get_learner(model: Union[Sequential, ABCMeta, Pipeline],
-                db_name: str, dataset_id: int, dataset_name: str,
-                random_model: bool, split_index: int, seed: int, fit_params: dict):
+def _get_learner(model: Union[Sequential, ABCMeta, Pipeline],
+                 db_name: str, dataset_id: int, dataset_name: str,
+                 random_model: bool, split_index: int,
+                 seed: int, fit_params: dict) -> Union[Sequential, ABCMeta, Pipeline]:
+    """
+    Fetch fitted model from database or return the model itself.
+
+    :param model: machine learning model
+    :param db_name: database name
+    :param dataset_id: data set identifier
+    :param dataset_name: data set name
+    :param random_model: if True it enables model randomization (if applicable)
+    :param split_index: cross-validation index
+    :param seed: seed used to make results reproducible
+    :param fit_params: arguments used to specify fit parameters of the model
+    :return: fitted model if possible, otherwise the model itself
+    """
 
     learner = copy.deepcopy(model)
     learner = _set_random_seed(learner, random_model, split_index, seed)
@@ -177,6 +189,17 @@ def get_learner(model: Union[Sequential, ABCMeta, Pipeline],
 def _fit(learner: Union[Sequential, ABCMeta, Pipeline],
          x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray,
          fit_params: dict):
+    """
+    Fit model if it has not been fitted yet.
+
+    :param learner: machine learning model
+    :param x_train: train data
+    :param y_train: train labels
+    :param x_val: validation data
+    :param y_val: validation labels
+    :param fit_params: arguments used to specify fit parameters of the model
+    :return: fitted model
+    """
 
     # Learning with Keras / Tensorflow
     if isinstance(learner, Sequential):
@@ -211,22 +234,24 @@ def _fit(learner: Union[Sequential, ABCMeta, Pipeline],
     return learner
 
 
-def _predict(learner: Union[Sequential, ABCMeta, Pipeline], x: np.ndarray, y: np.ndarray):
+def _predict(learner: Union[Sequential, ABCMeta, Pipeline], x: np.ndarray, n_classes: int):
+    """
+    Predict labels for input data.
+
+    :param learner: fitted machine learning model
+    :param x: data
+    :param n_classes: labels
+    :return: predictions
+    """
 
     # Predictions using Keras / Tensorflow
     if isinstance(learner, Sequential):
-
-        # create one-hot encoding labels if there are more than 2 classes
-        n_classes = len(np.unique(y))
-        if n_classes > 2:
-            y = to_categorical(y)
 
         # predict lables
         y_pred = learner.predict(x)
 
         # inverse one-hot encoding transformation if needed
         if n_classes > 2:
-            y = np.argmax(y, axis=1)
             y_pred = np.argmax(y_pred, axis=1)
 
     # Predictions using sklearn models
@@ -242,7 +267,7 @@ def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
                      x_val: np.ndarray = None, y_val: np.ndarray = None,
                      random_data: bool = True, random_model: bool = True,
                      seed: int = 42, n_splits: int = 10, metric: str = "f1",
-                     logger: Logger = None, fit_params: dict = {}) -> dict:
+                     logger: Logger = None, fit_params: dict = {}) -> (dict, list):
 
     """
     Apply cross-validation on the given model.
@@ -257,10 +282,11 @@ def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
     >>> model = LogisticRegression()
     >>> fit_params = {}
     >>>
-    >>> score, signature = cross_validation(model=model, x=x, y=y, db_name="database", dataset_id=1, dataset_name="make-class")
+    >>> score, fitted_models = cross_validation(model=model, x=x, y=y, db_name="database",
+    ...                                         dataset_id=1, dataset_name="make-class")
     >>> type(score)
     <class 'dict'>
-    >>> type(signature)
+    >>> type(fitted_models)
     <class 'int'>
 
     Notes
@@ -307,11 +333,13 @@ def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
         assert isinstance(x_val, np.ndarray) and isinstance(y_val, np.ndarray)
 
     # Useful variables
+    fitted_models = []
     score = {"train_blind": [], "test_blind": [], "train_cv": [], "val_cv": []}
     if metric == "accuracy":
         score_fun = accuracy_score
     elif metric == "f1":
         score_fun = functools.partial(f1_score, average="weighted")
+    n_classes = len(np.unique(y))
 
     # prepare data for cross-validation
     if random_data:
@@ -337,14 +365,14 @@ def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
             y_train = y
 
         # load learner
-        learner = get_learner(model, db_name, dataset_id, dataset_name, random_model, split_index, seed, fit_params)
+        learner = _get_learner(model, db_name, dataset_id, dataset_name, random_model, split_index, seed, fit_params)
 
         # fit learner
         learner = _fit(learner, x_train, y_train, x_val, y_val, fit_params)
 
         # predict
-        y_train_pred = _predict(learner, x_train, y_train)
-        y_val_pred = _predict(learner, x_val, y_val)
+        y_train_pred = _predict(learner, x_train, n_classes)
+        y_val_pred = _predict(learner, x_val, n_classes)
 
         # compute score
         score_train = score_fun(y_train, y_train_pred)
@@ -356,19 +384,41 @@ def cross_validation(model: Union[Sequential, ABCMeta, Pipeline],
 
         # save trained model
         learner.signature = save_model(learner, split_index, dataset_id, dataset_name, fit_params, db_name)
+        fitted_models.append(copy.deepcopy(learner))
 
         if logger: logger.info("\t%s: train %.4f - validation %.4f" % (metric, score_train, score_val))
 
         split_index += 1
 
-    return score, learner.signature
+    return score, fitted_models
 
 
 def _compute_result_summary(models: list, random_data: bool, random_model: bool,
                             seed: int, n_splits: int, metric: str,
                             test: Callable, alpha: int, cl: float,
                             dataset_id: int, dataset_name: str,
-                            train_cv: list, val_cv: list, pvalues: list, best_solutions: list):
+                            train_cv: list, val_cv: list,
+                            pvalues: list, best_solutions: list) -> pd.DataFrame:
+    """
+    Compute a summary of the cross-validation and model comparison results.
+
+    :param models: list of machine learning models (keras or sklearn)
+    :param random_data: if True it enables data randomization
+    :param random_model: if True it enables model randomization (if applicable)
+    :param seed: seed used to make results reproducible
+    :param n_splits: number of cross-validation iterations
+    :param metric: metric used to evaluate the model performance (f1 or accuracy)
+    :param test: statistical test
+    :param alpha: significance level
+    :param cl: confidence level
+    :param dataset_id: data set identifier
+    :param dataset_name: data set name
+    :param train_cv: cross-validation train scores
+    :param val_cv: cross-validation validation scores
+    :param pvalues: p-values of the statistical hypothesis test
+    :param best_solutions: best solutions' indexes
+    :return: summary of the results as a table
+    """
 
     columns = [
         "db-name", "db-did",
@@ -394,7 +444,7 @@ def _compute_result_summary(models: list, random_data: bool, random_model: bool,
     index = 0
     for model in models:
         # compute confidence intervals of the mean of the validation score
-        ci_bounds = confidence_interval_mean(val_cv[index], cl=cl)
+        ci_bounds = confidence_interval_mean_t(val_cv[index], cl=cl)
 
         separable = False if index in best_solutions else True
 
@@ -418,25 +468,6 @@ def _compute_result_summary(models: list, random_data: bool, random_model: bool,
         results = results.append(pd.DataFrame([row], columns=columns), ignore_index=True)
 
     return results
-
-
-def _plot_results(val_cv: list, best_solutions: list, pvalues: list, cl: float):
-
-    cv = np.stack(val_cv, axis=1)
-
-    plt.figure()
-    plt.boxplot(cv)
-    plt.show()
-
-    print("Best solutions:")
-    print(best_solutions)
-    print("Pvalues:")
-    print(pvalues)
-
-    best_sol = val_cv[best_solutions[0]]
-    best_mean = np.mean(best_sol)
-    ci_bounds = confidence_interval_mean(best_sol, cl=cl)
-    print("Best solution score: %.4f [ %.4f , %.4f ]" % (best_mean, ci_bounds[0], ci_bounds[1]))
 
 
 def compare_models(models: list,
@@ -516,13 +547,13 @@ def compare_models(models: list,
     # Cross-validation
     for model, fit_params in zip(models, params):
 
-        score, signature = cross_validation(model, x=x_train, y=y_train,
-                                            x_val=x_val, y_val=y_val,
-                                            random_data=random_data, random_model=random_model,
-                                            seed=seed, n_splits=n_splits, metric=metric, logger=logger,
-                                            db_name=db_name, fit_params=fit_params,
-                                            dataset_id=dataset_id, dataset_name=dataset_name)
-        model.signature = signature
+        score, fitted_models = cross_validation(model, x=x_train, y=y_train,
+                                                x_val=x_val, y_val=y_val,
+                                                random_data=random_data, random_model=random_model,
+                                                seed=seed, n_splits=n_splits, metric=metric, logger=logger,
+                                                db_name=db_name, fit_params=fit_params,
+                                                dataset_id=dataset_id, dataset_name=dataset_name)
+        model.signature = fitted_models[-1].signature
 
         train_cv.append(score["train_cv"])
         val_cv.append(score["val_cv"])
@@ -544,8 +575,8 @@ def compare_models(models: list,
         os.mkdir(output_dir)
     results.to_csv(os.path.join(output_dir, experiment))
 
-    # Plot results
-    if verbose:
-        _plot_results(val_cv, best_solutions, pvalues, cl)
+    # # Plot results
+    # if verbose:
+    #     _plot_results(val_cv, best_solutions, pvalues, cl)
 
     return results
