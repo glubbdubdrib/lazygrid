@@ -1,4 +1,4 @@
 include lazygrid/*.md
-include lazygrid/config.ini
-include *.txt
+include LICENSE.txt
+include requirements.txt
 include *.md
