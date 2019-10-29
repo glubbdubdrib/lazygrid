@@ -30,7 +30,7 @@ license_text = (package_dir / 'LICENSE.txt').read_text()
 
 setup(
     name='lazygrid',
-    version='0.2.0',
+    version='0.2.1',
     description='LazyGrid: memoization of ML models',
     long_description=readme_text,
     long_description_content_type="text/markdown",
