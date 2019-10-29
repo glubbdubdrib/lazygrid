@@ -18,7 +18,6 @@
 from keras import Sequential
 from keras.layers import Dense, Activation, InputLayer
 from sklearn.preprocessing import LabelEncoder
-from tensorflow import set_random_seed
 from keras.utils import to_categorical
 from keras.initializers import glorot_uniform  # Or your initializer of choice
 from keras import optimizers

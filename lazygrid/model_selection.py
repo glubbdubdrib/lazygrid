@@ -40,7 +40,7 @@ from sklearn.feature_selection import SelectKBest, f_classif
 
 from keras import Sequential, Model
 import tensorflow as tf
-if tf.VERSION >= '2.0.0':
+if tf.__version__ >= '2.0.0':
     from tensorflow.random import set_seed
     set_random_seed = set_seed
 else:
