@@ -144,7 +144,7 @@ compare keras models with different optimizers and fit parameters.
     fit_params = {"epochs": [5, 10, 20], "batch_size": [10, 20]}
 
     # generate all possible models given the parameters' grid
-    models = lg.generate_grid_search(kmodel, model_params, fit_params)
+    models, fit_parameters = lg.generate_grid_search(kmodel, model_params, fit_params)
 
 
     # define scoring function for one-hot-encoded lables
@@ -155,10 +155,11 @@ compare keras models with different optimizers and fit parameters.
 
 
     # cross validation
-    for model in models:
+    for model, fp in zip(models, fit_parameters):
         score, fitted_models = lg.cross_validation(model=model, x=x_train, y=y_train, x_val=x_val, y_val=y_val,
                                                    db_name="database", dataset_id=1, random_data=False,
-                                                   dataset_name="make-classification", n_splits=3, scoring=score_fun)
+                                                   dataset_name="make-classification", n_splits=3,
+                                                   scoring=score_fun, fit_params=fp)
 
 Model comparison
 ~~~~~~~~~~~~~~~~
@@ -243,6 +244,25 @@ fetches the model that has already been fitted from the database.
         score, fitted_models = lg.cross_validation(model=model, x=x, y=y,
                                                    db_name="database", dataset_id=1,
                                                    dataset_name="make-classification")
+
+**Please note** that, the ``fitted_model`` returned by the
+cross-validation procedure is
+a list of ``ModelWrapper`` objects. Such objects are used to
+conveniently wrap both ``sklearn`` and ``keras`` models. They
+contain useful information that can be used to fetch models
+from the database (e.g. model parameters, fit parameters,
+model name, model version, etc.).
+
+The ``fetch_fitted_models`` can be used to retrieve all
+fitted models (as ``ModelWrapper`` objects) from a database:
+
+.. code:: python
+
+    import lazygrid as lg
+
+    fitted_models = fetch_fitted_models(db_name="database")
+
+
 
 Plots
 ~~~~~
