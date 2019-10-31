@@ -18,22 +18,24 @@
 from setuptools import setup, find_packages
 import pathlib
 import os
+from pypandoc import convert
 
 # The directory containing this file
 package_dir = pathlib.Path(__file__).parent
 
 # with open(os.path.join(package_dir, 'README.md')) as f:
-readme_text = (package_dir / "README.md").read_text()
+readme_text = convert((package_dir / "README.md").read_text(), "rst")
 
 # with open(os.path.join(package_dir, 'LICENSE.txt')) as f:
-license_text = (package_dir / 'LICENSE.txt').read_text()
+license_text = convert((package_dir / 'LICENSE.txt').read_text(), "rst")
 
 setup(
     name='lazygrid',
     version='0.2.1',
-    description='LazyGrid: memoization of ML models',
+    description='LazyGrid: Efficient cross-validation and statistical tests of complex '
+                'machine learning pipelines and neural networks',
     long_description=readme_text,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     url='https://github.com/pietrobarbiero/lazygrid',
     author='Pietro Barbiero and Giovanni Squillero',
     author_email='cleisthenes.megacleos@gmail.com',
