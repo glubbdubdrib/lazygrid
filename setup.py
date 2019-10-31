@@ -16,25 +16,18 @@
 # limitations under the License.
 
 from setuptools import setup, find_packages
-import pathlib
-import os
-from pypandoc import convert
+from os import path
 
-# The directory containing this file
-package_dir = pathlib.Path(__file__).parent
-
-# with open(os.path.join(package_dir, 'README.md')) as f:
-readme_text = convert((package_dir / "README.md").read_text(), "rst")
-
-# with open(os.path.join(package_dir, 'LICENSE.txt')) as f:
-license_text = convert((package_dir / 'LICENSE.txt').read_text(), "rst")
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
     name='lazygrid',
-    version='0.2.1',
+    version='1.0.0',
     description='LazyGrid: Efficient cross-validation and statistical tests of complex '
                 'machine learning pipelines and neural networks',
-    long_description=readme_text,
+    long_description=long_description,
     long_description_content_type="text/x-rst",
     url='https://github.com/pietrobarbiero/lazygrid',
     author='Pietro Barbiero and Giovanni Squillero',
