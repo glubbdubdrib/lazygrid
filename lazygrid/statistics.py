@@ -62,7 +62,9 @@ def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> tuple([float,
 
     if np.all(x == np.mean(x)):
         return 2 * [np.mean(x)]
-    return stats.t.interval(1-cl, len(x)-1, loc=np.mean(x), scale=stats.sem(x))
+    bounds = stats.t.interval(1-cl, len(x)-1, loc=np.mean(x), scale=stats.sem(x))
+    adjusted_bounds = [bound if bound <= 1 else 1 for bound in bounds]
+    return adjusted_bounds
 
 
 def find_best_solution(solutions: list,
@@ -155,7 +157,7 @@ def confusion_matrix_aggregate(fitted_models, x, y):
     y_pred_list = []
     y_list = []
     for model in fitted_models:
-        y_pred = model.predict(x)
+        y_pred = model.model.predict(x)
         y_pred_list.append(y_pred)
         y_list.append(y)
     y_pred_list = np.concatenate(y_pred_list, axis=0)
