@@ -17,7 +17,7 @@
 import functools
 import traceback
 from abc import ABCMeta
-from typing import Union
+from typing import Union, Tuple, List
 
 import numpy as np
 import sys
@@ -80,9 +80,50 @@ def generate_grid(elements: list) -> list:
 
 
 def generate_grid_search(model: Union[Sequential, Model, ABCMeta, Pipeline],
-                         model_params: dict, fit_params: dict) -> list:
+                         model_params: dict, fit_params: dict) -> Tuple[list, List[dict]]:
     """
     Generate all possible combinations of models.
+
+    Example
+    --------
+    >>> import keras
+    >>> from keras import Sequential
+    >>> from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+    >>> from keras.utils import to_categorical
+    >>> from sklearn.metrics import f1_score
+    >>> from sklearn.datasets import load_digits
+    >>> from sklearn.model_selection import StratifiedKFold
+    >>> import lazygrid as lg
+    >>> import numpy as np
+    >>> from keras.wrappers.scikit_learn import KerasClassifier
+    >>>
+    >>> # define keras model generator
+    >>> def create_keras_model(input_shape, optimizer, n_classes):
+    ...
+    ...     kmodel = Sequential()
+    ...     kmodel.add(Conv2D(32, kernel_size=(5, 5), strides=(1, 1),
+    ...                       activation='relu',
+    ...                       input_shape=input_shape))
+    ...     kmodel.add(MaxPooling2D(pool_size=(2, 2)))
+    ...     kmodel.add(Flatten())
+    ...     kmodel.add(Dense(1000, activation='relu'))
+    ...     kmodel.add(Dense(n_classes, activation='softmax'))
+    ...
+    ...     kmodel.compile(loss=keras.losses.categorical_crossentropy,
+    ...                    optimizer=optimizer,
+    ...                    metrics=['accuracy'])
+    ...     return kmodel
+    >>>
+    >>> # cast keras model into sklearn model
+    >>> kmodel = KerasClassifier(create_keras_model)
+    >>>
+    >>> # define all possible model parameters of the grid
+    >>> model_params = {"optimizer": ['SGD', 'RMSprop'], "input_shape": [(28, 28, 3)], "n_classes": [10]}
+    >>> fit_params = {"epochs": [5, 10, 20], "batch_size": [10, 20]}
+    >>>
+    >>> # generate all possible models given the parameters' grid
+    >>> models, fit_parameters = lg.generate_grid_search(kmodel, model_params, fit_params)
+
 
     Parameters
     --------
@@ -93,6 +134,7 @@ def generate_grid_search(model: Union[Sequential, Model, ABCMeta, Pipeline],
     """
 
     models = []
+    fit_parameters = []
     keys = []
     values = []
     is_for_fit = []
@@ -127,5 +169,6 @@ def generate_grid_search(model: Union[Sequential, Model, ABCMeta, Pipeline],
         functools.partial(learner.fit, **fit_params_dict)
 
         models.append(learner)
+        fit_parameters.append(fit_params_dict)
 
-    return models
+    return models, fit_parameters
