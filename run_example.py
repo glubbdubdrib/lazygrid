@@ -73,11 +73,11 @@ def main():
     for model in models:
         params.append({})
 
-    # generate neural models
-    models.append(lazygrid.keras_classifier([10, 5], x.shape[1:], n_classes, lr=0.001))
-    models.append(lazygrid.keras_classifier([10, 5], x.shape[1:], n_classes, lr=0.01))
-    params.append({"epochs": 200, "verbose": 1})
-    params.append({"epochs": 100, "verbose": 0})
+    # # generate neural models
+    # models.append(lazygrid.keras_classifier([10, 5], x.shape[1:], n_classes, lr=0.001))
+    # models.append(lazygrid.keras_classifier([10, 5], x.shape[1:], n_classes, lr=0.01))
+    # params.append({"epochs": 200, "verbose": 1})
+    # params.append({"epochs": 100, "verbose": 0})
 
     # compare models
     results = lazygrid.compare_models(models=models, x_train=x, y_train=y, dataset_id=dataset.did,
