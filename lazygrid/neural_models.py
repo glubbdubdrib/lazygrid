@@ -45,8 +45,13 @@ def reset_weights(model: Sequential, seed: int = 42):
     else:
         raise ValueError("Unsupported backend")
 
-    # set new weights
-    new_weights = [k_eval(glorot_uniform(seed=seed)(w.shape)) for w in initial_weights]
+    # set new weights only if they are trainable
+    new_weights = []
+    for w, l in zip(initial_weights, model.layers):
+        if l.trainable:
+            new_weights.append(k_eval(glorot_uniform(seed=seed)(w.shape)))
+        else:
+            new_weights.append(w)
     model.set_weights(new_weights)
 
 
