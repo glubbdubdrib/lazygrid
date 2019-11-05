@@ -260,7 +260,7 @@ fitted models (as ``ModelWrapper`` objects) from a database:
 
     import lazygrid as lg
 
-    fitted_models = fetch_fitted_models(db_name="database")
+    fitted_models = lg.fetch_fitted_models(db_name="database")
 
 
 
