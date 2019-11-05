@@ -56,7 +56,7 @@ class ModelWrapper(object):
     def __init__(self, model, fit_params=None, model_id=None, is_standalone=True):
 
         self.model_id = model_id
-        self.model = _corner_cases(model)
+        self.model = self.fetch_model(model)
         self.model_type = str(model.__module__).split(".")[0]
         self.model_name = str(model.__class__.__name__).split(".")[0]
         self.version = sys.modules[self.model_type].__version__
@@ -77,6 +77,17 @@ class ModelWrapper(object):
             self._parse_neural_model(model)
         else:
             raise ModuleNotFoundError
+
+    def fetch_model(self, model=None):
+        if self.model:
+            return self.model
+        if model:
+            if hasattr(model, "_model"):
+                return getattr("_model")
+            else:
+                return _corner_cases(model)
+        else:
+            return None
 
     def _parse_sklearn_model(self, model):
         """
