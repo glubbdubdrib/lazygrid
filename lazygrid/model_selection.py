@@ -34,81 +34,19 @@ from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
 from sklearn.pipeline import Pipeline
 from keras import Sequential, Model
-
-from .utils import set_random_seed, is_fitted
-from .database import save_model, load_model, drop_db
+from .database import drop_db
 from .statistics import find_best_solution, confidence_interval_mean_t
-from .wrapper import ModelWrapper
+from .wrapper import Wrapper
 
 
-def _get_learner(model: ModelWrapper,
-                 db_name: str, dataset_id: int, dataset_name: str,
-                 random_model: bool, split_index: int,
-                 seed: int, fit_params: dict) -> ModelWrapper:
-    """
-    Fetch fitted model from database or return the model itself.
-
-    :param model: machine learning model
-    :param db_name: database name
-    :param dataset_id: data set identifier
-    :param dataset_name: data set name
-    :param random_model: if True it enables model randomization (if applicable)
-    :param split_index: cross-validation index
-    :param seed: seed used to make results reproducible
-    :return: fitted model if possible, otherwise the model itself
-    """
-
-    model = copy.deepcopy(model)
-    model = set_random_seed(model, random_model, split_index, seed)
-
-    # wrap model
-    learner = ModelWrapper(model, fit_params)
-
-    # check if model has already been computed
-    learner = load_model(learner, split_index, dataset_id, dataset_name, db_name)
-
-    return learner
-
-
-def fit_pipeline(learner: ModelWrapper,
-                 x_train: np.ndarray, y_train: np.ndarray):
-    """
-    Fit pipeline if it has not been fitted yet.
-
-    :param learner: machine learning model
-    :param x_train: train data
-    :param y_train: train labels
-    :return: fitted model
-    """
-
-    # Learning with Sklearn Pipeline
-    assert learner.model_name is "Pipeline"
-
-    # fit steps only if they are not already fitted
-    x_train_t = x_train
-    i = 0
-    for pipeline_step, model in zip(learner.model.steps, learner.models):
-
-        if not is_fitted(model, x_train_t):
-            pipeline_step[1].fit(x_train_t, y_train)
-            learner.models[i] = ModelWrapper(copy.deepcopy(pipeline_step[1]), is_standalone=False)
-
-        if hasattr(pipeline_step[1], "transform"):
-            x_train_t = pipeline_step[1].transform(x_train_t)
-
-        i += 1
-
-    return learner
-
-
-def cross_validation(model: Union[Sequential, Model, ABCMeta, Pipeline],
+def cross_validation(model: Wrapper,
                      x: np.ndarray, y: np.ndarray,
                      db_name: str, dataset_id: int, dataset_name: str,
                      x_val: np.ndarray = None, y_val: np.ndarray = None,
                      random_data: bool = True, random_model: bool = True,
                      seed: int = 42, n_splits: int = 10, scoring: Union[Callable, str] = None,
-                     logger: Logger = None, fit_params: dict = {}) -> (dict, list):
-
+                     logger: Logger = None,
+                     fit_params: dict = {}, predict_params: dict = {}, score_params: dict = {}) -> (dict, list):
     """
     Apply cross-validation on the given model.
 
@@ -156,6 +94,8 @@ def cross_validation(model: Union[Sequential, Model, ABCMeta, Pipeline],
     :param scoring: scoring function used to evaluate the model performance (Callable, f1 or accuracy)
     :param logger: object used to save progress
     :param fit_params: arguments used to specify fit parameters of the model
+    :param predict_params: arguments used to specify predict parameters of the model
+    :param score_params: arguments used to specify score parameters of the model
     :return: cross-validation scores and fitted models
     """
 
@@ -187,9 +127,6 @@ def cross_validation(model: Union[Sequential, Model, ABCMeta, Pipeline],
     if random_data:
         skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
         list_of_splits = [split for split in skf.split(x, y)]
-    if random_model and not random_data:
-        x_train = x
-        y_train = y
 
     # Cross validation
     if logger: logger.info("Start cross-validation")
@@ -207,36 +144,38 @@ def cross_validation(model: Union[Sequential, Model, ABCMeta, Pipeline],
             y_train = y
 
         # load learner
-        learner = _get_learner(model, db_name, dataset_id, dataset_name, random_model, split_index, seed, fit_params)
+        if random_model:
+            model.set_random_seed(split_index)
+        else:
+            model.set_random_seed(seed)
+
+        # check if model has already been computed
+        learner = model.load_model()
 
         # fit learner
-        if learner.model_name is "Pipeline":
-            learner = fit_pipeline(learner, x_train, y_train)
-        else:
-            if not is_fitted(learner, x_train):
-                learner.model.fit(x_train, y_train, **fit_params)
+        learner.fit(x_train, y_train, fit_params)
 
         if score_fun:
             # predict
-            y_train_pred = learner.model.predict(x_train)
-            y_val_pred = learner.model.predict(x_val)
+            y_train_pred = learner.predict(x_train, predict_params)
+            y_val_pred = learner.predict(x_val, predict_params)
 
             # compute score
             score_train = score_fun(y_train, y_train_pred)
             score_val = score_fun(y_val, y_val_pred)
 
-        elif hasattr(learner.model, "score"):
+        else:
             # compute score directly
-            score_train = learner.model.score(x_train, y_train)
-            score_val = learner.model.score(x_val, y_val)
+            score_train = learner.score(x_train, y_train, score_params)
+            score_val = learner.score(x_val, y_val, score_params)
 
         # save results
         score["train_cv"].append(score_train)
         score["val_cv"].append(score_val)
 
         # save trained model
-        save_model(learner, split_index, dataset_id, dataset_name, db_name)
-        fitted_models.append(copy.deepcopy(learner))
+        learner.save_model()
+        fitted_models.append(learner)
 
         if logger: logger.info("\t%s: train %.4f - validation %.4f" % (str(scoring), score_train, score_val))
 
@@ -245,7 +184,9 @@ def cross_validation(model: Union[Sequential, Model, ABCMeta, Pipeline],
     return score, fitted_models
 
 
-def _compute_result_summary(models: List[ModelWrapper], random_data: bool, random_model: bool,
+# TODO: double check fit_params, predict_params, score_params
+
+def _compute_result_summary(models: List[Wrapper], random_data: bool, random_model: bool,
                             seed: int, n_splits: int, scoring: [Callable, str],
                             test: Callable, alpha: int, cl: float,
                             dataset_id: int, dataset_name: str,
@@ -301,6 +242,11 @@ def _compute_result_summary(models: List[ModelWrapper], random_data: bool, rando
 
         separable = False if index in best_solutions else True
 
+        try:
+            model_names = [str(m.model_name) for m in model.models]
+        except:
+            model_names = ""
+
         row = [
             dataset_name,
             dataset_id,
@@ -310,7 +256,7 @@ def _compute_result_summary(models: List[ModelWrapper], random_data: bool, rando
             model.version,
             model.parameters,
             str(model.fit_parameters),
-            str(model.models_id),
+            model_names,
             str(model.is_standalone),
             train_cv[index],
             val_cv[index],
@@ -329,7 +275,7 @@ def _compute_result_summary(models: List[ModelWrapper], random_data: bool, rando
     return results
 
 
-def compare_models(models: list,
+def compare_models(models: List[Wrapper],
                    x_train: np.ndarray, y_train: np.ndarray, params: list,
                    x_val: np.ndarray = None, y_val: np.ndarray = None,
                    random_data: bool = True, random_model: bool = True,
