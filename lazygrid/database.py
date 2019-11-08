@@ -14,58 +14,26 @@
 #
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import copy
+
 import os
 import sqlite3
-import json
-import pickle
-import traceback
 from typing import Optional, Any
-
-from sklearn.pipeline import Pipeline
-import keras
-from .wrapper import Wrapper
+from .config import create_table_stmt, insert_model_stmt, query_stmt
 
 
-def save_model_to_db(model: Wrapper, create_table_stmt, insert_model_stmt, query_stmt) -> int:
+def save_model_to_db(model, create_table_stmt: str = create_table_stmt,
+                     insert_model_stmt: str = insert_model_stmt,
+                     query_stmt: str = query_stmt) -> Optional[Any]:
     """
     Save fitted model into a database.
-
-    Examples
-    --------
-    >>> from sklearn.ensemble import RandomForestClassifier
-    >>> from sklearn.datasets import make_classification
-    >>> from sklearn.feature_selection import SelectKBest, f_classif
-    >>> import lazygrid as lg
-    >>>
-    >>> x, y = make_classification()
-    >>>
-    >>> fs = SelectKBest(f_classif, k=5)
-    >>> clf = RandomForestClassifier()
-    >>> model = Pipeline([('feature_selector', fs), ('clf', clf)])
-    >>> type(model.fit(x, y))
-    <class 'sklearn.pipeline.Pipeline'>
-    >>>
-    >>> cv_split = 0
-    >>> dataset_id = 1
-    >>> dataset_name = "iris"
-    >>> db_name = "lazygrid"
-    >>> previous_step_id = -1
-    >>> model = lg.ModelWrapper(model)
-    >>>
-    >>> step_id = _save(model, cv_split, dataset_id, dataset_name, db_name, previous_step_id)
-    >>> type(step_id)
-    <class 'int'>
 
     Parameters
     --------
     :param model: machine learning model
-    :param cv_split: cross-validation split index
-    :param dataset_id: data set identifier
-    :param dataset_name: data set name
-    :param db_name: database name
-    :param previous_step_id: identifier of the previous step (for pipeline classifiers)
-    :return: model identifier
+    :param create_table_stmt: database statement for table creation
+    :param insert_model_stmt: database statement for model insertion
+    :param query_stmt: database statement for model query
+    :return: query result
     """
 
     # Create database if does not exists
@@ -83,7 +51,7 @@ def save_model_to_db(model: Wrapper, create_table_stmt, insert_model_stmt, query
     except sqlite3.IntegrityError:
         # print(traceback.format_exc())
         pass
-    result = cursor.execute(query_stmt, model.query).fetchone()[0]
+    result = cursor.execute(query_stmt, model.query).fetchone()
 
     db.commit()
     db.close()
@@ -91,49 +59,15 @@ def save_model_to_db(model: Wrapper, create_table_stmt, insert_model_stmt, query
     return result
 
 
-def load_model_from_db(model: Wrapper, query_stmt) -> (Optional[int], Optional[Any]):
+def load_model_from_db(model, query_stmt: str = query_stmt) -> Optional[Any]:
     """
     Load fitted model from a database.
-
-    Examples
-    --------
-    >>> from sklearn.ensemble import RandomForestClassifier
-    >>> from sklearn.feature_selection import SelectKBest, f_classif
-    >>> from sklearn.datasets import make_classification
-    >>> import lazygrid as lg
-    >>>
-    >>> x, y = make_classification()
-    >>>
-    >>> fs = SelectKBest(f_classif, k=5)
-    >>> clf = RandomForestClassifier()
-    >>> model = Pipeline([('feature_selector', fs), ('clf', clf)])
-    >>> type(model.fit(x, y))
-    <class 'sklearn.pipeline.Pipeline'>
-    >>>
-    >>> cv_split = 0
-    >>> dataset_id = 1
-    >>> dataset_name = "iris"
-    >>> fit_params = {}
-    >>> db_name = "templates"
-    >>> previous_step_id = -1
-    >>> model = lg.ModelWrapper(model)
-    >>>
-    >>> model_id = _save(model, cv_split, dataset_id, dataset_name, db_name, previous_step_id)
-    >>>
-    >>> model = _load(model, cv_split, dataset_id, dataset_name, db_name, previous_step_id)
-    >>> type(model)
-    <class 'wrapper.ModelWrapper'>
-
 
     Parameters
     --------
     :param model: machine learning model
-    :param cv_split: cross-validation split index
-    :param dataset_id: data set identifier
-    :param dataset_name: data set name
-    :param db_name: database name
-    :param previous_step_id: identifier of the previous step (for pipeline classifiers)
-    :return: fitted model
+    :param query_stmt: database statement for model query
+    :return: query result
     """
 
     # Connect to database if it exists
@@ -232,7 +166,7 @@ def load_model_from_db(model: Wrapper, query_stmt) -> (Optional[int], Optional[A
 #     return model_list
 
 
-def drop_db(db_name: str = "templates") -> None:
+def drop_db(db_name) -> None:
     """
     Drop database table if it exists.
 

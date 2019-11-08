@@ -23,30 +23,24 @@ import pandas as pd
 import os
 import functools
 from typing import Union, Callable, List
-from abc import ABCMeta
 from logging import Logger
-from scipy import stats
 from scipy.stats import mannwhitneyu
 from statsmodels.stats.proportion import proportion_confint
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
-from sklearn.pipeline import Pipeline
-from keras import Sequential, Model
-from .database import drop_db
 from .statistics import find_best_solution, confidence_interval_mean_t
 from .wrapper import Wrapper
 
 
 def cross_validation(model: Wrapper,
                      x: np.ndarray, y: np.ndarray,
-                     db_name: str, dataset_id: int, dataset_name: str,
                      x_val: np.ndarray = None, y_val: np.ndarray = None,
                      random_data: bool = True, random_model: bool = True,
                      seed: int = 42, n_splits: int = 10, scoring: Union[Callable, str] = None,
-                     logger: Logger = None,
-                     fit_params: dict = {}, predict_params: dict = {}, score_params: dict = {}) -> (dict, list):
+                     logger: Logger = None, plot_results: bool = True,
+                     output_dir: str = "./output", class_names: List[str] = None) -> (dict, list):
     """
     Apply cross-validation on the given model.
 
@@ -54,14 +48,14 @@ def cross_validation(model: Wrapper,
     --------
     >>> from sklearn.linear_model import LogisticRegression
     >>> from sklearn.datasets import make_classification
+    >>> import lazygrid as lg
     >>>
     >>> x, y = make_classification()
     >>>
-    >>> model = LogisticRegression()
-    >>> fit_params = {}
+    >>> lg_model = lg.SklearnWrapper(LogisticRegression(), dataset_id=1,
+    ...                              dataset_name="make-classification", db_name="lazygrid-test")
     >>>
-    >>> score, fitted_models = cross_validation(model=model, x=x, y=y, db_name="database",
-    ...                                         dataset_id=1, dataset_name="make-class")
+    >>> score, fitted_models = cross_validation(model=lg_model, x=x, y=y)
     >>> type(score)
     <class 'dict'>
     >>> type(fitted_models)
@@ -82,9 +76,6 @@ def cross_validation(model: Wrapper,
     :param model: machine learning model
     :param x: input data
     :param y: input labels
-    :param db_name: database name
-    :param dataset_id: data set identifier
-    :param dataset_name: data set name
     :param x_val: validation data
     :param y_val: validation labels
     :param random_data: if True it enables data randomization
@@ -93,9 +84,8 @@ def cross_validation(model: Wrapper,
     :param n_splits: number of cross-validation iterations
     :param scoring: scoring function used to evaluate the model performance (Callable, f1 or accuracy)
     :param logger: object used to save progress
-    :param fit_params: arguments used to specify fit parameters of the model
-    :param predict_params: arguments used to specify predict parameters of the model
-    :param score_params: arguments used to specify score parameters of the model
+    :param output_dir: directory where output results will be saved
+    :param class_names: label names
     :return: cross-validation scores and fitted models
     """
 
@@ -113,6 +103,8 @@ def cross_validation(model: Wrapper,
 
     # Useful variables
     fitted_models = []
+    y_pred_list = []
+    y_list = []
     score = {"train_blind": [], "test_blind": [], "train_cv": [], "val_cv": []}
     if isinstance(scoring, Callable):
         score_fun = scoring
@@ -144,30 +136,35 @@ def cross_validation(model: Wrapper,
             y_train = y
 
         # load learner
-        if random_model:
-            model.set_random_seed(split_index)
-        else:
-            model.set_random_seed(seed)
+        learner = copy.deepcopy(model)
+        learner.set_random_seed(seed, split_index, random_model)
 
         # check if model has already been computed
-        learner = model.load_model()
+        learner.load_model()
 
         # fit learner
-        learner.fit(x_train, y_train, fit_params)
+        learner.fit(x_train, y_train)
 
         if score_fun:
             # predict
-            y_train_pred = learner.predict(x_train, predict_params)
-            y_val_pred = learner.predict(x_val, predict_params)
+            y_train_pred = learner.predict(x_train)
+            y_val_pred = learner.predict(x_val)
 
             # compute score
             score_train = score_fun(y_train, y_train_pred)
             score_val = score_fun(y_val, y_val_pred)
 
+            y_pred_list.append(y_val_pred)
+            y_list.append(y_val)
+
         else:
             # compute score directly
-            score_train = learner.score(x_train, y_train, score_params)
-            score_val = learner.score(x_val, y_val, score_params)
+            score_train = learner.score(x_train, y_train)
+            score_val = learner.score(x_val, y_val)
+
+            if plot_results:
+                y_pred_list.append(learner.predict(x_val))
+                y_list.append(y_val)
 
         # save results
         score["train_cv"].append(score_train)
@@ -181,15 +178,15 @@ def cross_validation(model: Wrapper,
 
         split_index += 1
 
+    if plot_results:
+        learner.plot_results(y_pred_list, y_list, class_names, output_dir)
+
     return score, fitted_models
 
-
-# TODO: double check fit_params, predict_params, score_params
 
 def _compute_result_summary(models: List[Wrapper], random_data: bool, random_model: bool,
                             seed: int, n_splits: int, scoring: [Callable, str],
                             test: Callable, alpha: int, cl: float,
-                            dataset_id: int, dataset_name: str,
                             train_cv: list, val_cv: list,
                             pvalues: list, best_solutions: list) -> pd.DataFrame:
     """
@@ -204,8 +201,6 @@ def _compute_result_summary(models: List[Wrapper], random_data: bool, random_mod
     :param test: statistical test
     :param alpha: significance level
     :param cl: confidence level
-    :param dataset_id: data set identifier
-    :param dataset_name: data set name
     :param train_cv: cross-validation train scores
     :param val_cv: cross-validation validation scores
     :param pvalues: p-values of the statistical hypothesis test
@@ -248,8 +243,8 @@ def _compute_result_summary(models: List[Wrapper], random_data: bool, random_mod
             model_names = ""
 
         row = [
-            dataset_name,
-            dataset_id,
+            model.dataset_name,
+            model.dataset_id,
 
             model.model_name,
             model.model_type,
@@ -276,14 +271,12 @@ def _compute_result_summary(models: List[Wrapper], random_data: bool, random_mod
 
 
 def compare_models(models: List[Wrapper],
-                   x_train: np.ndarray, y_train: np.ndarray, params: list,
+                   x_train: np.ndarray, y_train: np.ndarray,
                    x_val: np.ndarray = None, y_val: np.ndarray = None,
                    random_data: bool = True, random_model: bool = True,
                    seed: int = 42, n_splits: int = 10, scoring: [Callable, str] = "f1",
                    test: Callable = mannwhitneyu, alpha: int = 0.05, cl: float = 0.05,
-                   experiment_name: str = "default", db_name: str = "templates",
-                   dataset_id: int = None, dataset_name: str = None,
-                   output_dir: str = "./output",
+                   experiment_name: str = "default", output_dir: str = "./output",
                    verbose: bool = False, logger: Logger = None) -> pd.DataFrame:
     """
     Compare machine learning models' performance on the provided data set, using
@@ -295,29 +288,32 @@ def compare_models(models: List[Wrapper],
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> from sklearn.datasets import make_classification
     >>> import pandas as pd
+    >>> import lazygrid as lg
     >>>
     >>> x, y = make_classification(random_state=42)
     >>>
-    >>> models = [LogisticRegression(), RandomForestClassifier(), RidgeClassifier()]
-    >>> model_names = ["LogisticRegression", "RandomForestClassifier", "RidgeClassifier"]
-    >>> params = [{}, {}, {}]
+    >>> lg_model_1 = lg.SklearnWrapper(LogisticRegression(), dataset_id=1,
+    ...                                dataset_name="make-classification", db_name="lazygrid-test")
+    >>> lg_model_2 = lg.SklearnWrapper(RandomForestClassifier(), dataset_id=1,
+    ...                                dataset_name="make-classification", db_name="lazygrid-test")
+    >>> lg_model_3 = lg.SklearnWrapper(RidgeClassifier(), dataset_id=1,
+    ...                                dataset_name="make-classification", db_name="lazygrid-test")
     >>>
-    >>> results = compare_models(models=models, x_train=x, y_train=y, params=params,
-    ...                          dataset_id=1, dataset_name="make-class")
+    >>> models = [lg_model_1, lg_model_2, lg_model_3]
+    >>> results = compare_models(models=models, x_train=x, y_train=y)
     >>>
     >>> pd.set_option('display.width', 9)
     >>> results[['model_name', 'module', 'version', 'ci-l-bound', 'ci-u-bound', 'pvalue']] #doctest: +ELLIPSIS
-                   model_name   module version  ci-l-bound ci-u-bound    pvalue
-    0      LogisticRegression  sklearn  0.21.2    0.909641          1  1.000000
-    1  RandomForestClassifier  sklearn  0.21.2    0.851488          1  0.532541
-    2         RidgeClassifier  sklearn  0.21.2    0.896696          1  0.654039
+                   model_name   module version  ci-l-bound  ci-u-bound    pvalue
+    0      LogisticRegression  sklearn  0.21.2    0.424323    0.585103  0.000123
+    1  RandomForestClassifier  sklearn  0.21.2    0.851488    1.000000  0.829392
+    2         RidgeClassifier  sklearn  0.21.2    0.896696    1.000000  1.000000
 
     Parameters
     --------
     :param models: list of machine learning models (keras or sklearn)
     :param x_train: training data
     :param y_train: input labels
-    :param params: list of dictionaries, each one containing the arguments of the fit method of a model
     :param x_val: validation data
     :param y_val: validation labels
     :param random_data: if True it enables data randomization
@@ -329,36 +325,22 @@ def compare_models(models: List[Wrapper],
     :param alpha: significance level
     :param cl: confidence level
     :param experiment_name: name of the current experiment
-    :param db_name: name of the database
-    :param dataset_id: data set identifier
-    :param dataset_name: data set name
     :param output_dir: path to the folder where the results will be saved (as csv file)
     :param verbose: if True enables plots
     :param logger: object used to save progress
     :return: Pandas DataFrame containing a summary of the results
     """
 
-    if not dataset_id:
-        dataset_id = 1
-        db_name = "new-db"
-        drop_db(db_name)
-
-    if not dataset_name:
-        dataset_name = "dataset"
-
     train_cv = []
     val_cv = []
 
     # Cross-validation
     i = 0
-    for model, fit_params in zip(models, params):
+    for model in models:
 
-        score, fitted_models = cross_validation(model, x=x_train, y=y_train,
-                                                x_val=x_val, y_val=y_val,
+        score, fitted_models = cross_validation(model, x=x_train, y=y_train, x_val=x_val, y_val=y_val,
                                                 random_data=random_data, random_model=random_model,
-                                                seed=seed, n_splits=n_splits, scoring=scoring, logger=logger,
-                                                db_name=db_name, fit_params=fit_params,
-                                                dataset_id=dataset_id, dataset_name=dataset_name)
+                                                seed=seed, n_splits=n_splits, scoring=scoring, logger=logger)
 
         models[i] = fitted_models[-1]
         train_cv.append(score["train_cv"])
@@ -373,7 +355,6 @@ def compare_models(models: List[Wrapper],
     # Compute results' summary
     results = _compute_result_summary(models, random_data, random_model,
                                       seed, n_splits, scoring, test, alpha, cl,
-                                      dataset_id, dataset_name,
                                       train_cv, val_cv, pvalues, best_solutions)
 
     # Save results to csv

@@ -16,17 +16,15 @@
 # limitations under the License.
 
 import numpy as np
-from typing import Union, Callable
-
+from typing import Callable, List
 from scipy import stats
 from scipy.stats import mannwhitneyu
-
 from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
 from sklearn.metrics import confusion_matrix
 
 
-def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> tuple([float, float]):
+def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> List[float]:
     """
     Compute the confidence interval of the mean from sample data.
 
@@ -61,7 +59,7 @@ def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> tuple([float,
     """
 
     if np.all(x == np.mean(x)):
-        return 2 * [np.mean(x)]
+        return [np.mean(x), np.mean(x)]
     bounds = stats.t.interval(1-cl, len(x)-1, loc=np.mean(x), scale=stats.sem(x))
     adjusted_bounds = [bound if bound <= 1 else 1 for bound in bounds]
     return adjusted_bounds
@@ -152,17 +150,9 @@ def find_best_solution(solutions: list,
     return best_idx, best_solutions_idx, pvalues
 
 
-def confusion_matrix_aggregate(fitted_models, x, y):
-
-    y_pred_list = []
-    y_list = []
-    for model in fitted_models:
-        y_pred = model.model.predict(x)
-        y_pred_list.append(y_pred)
-        y_list.append(y)
+def confusion_matrix_aggregate(y_pred_list, y_list):
     y_pred_list = np.concatenate(y_pred_list, axis=0)
     y_list = np.concatenate(y_list, axis=0)
     conf_mat = confusion_matrix(y_list, y_pred_list)
     conf_mat = np.rot90(conf_mat, 2).T
-
     return conf_mat

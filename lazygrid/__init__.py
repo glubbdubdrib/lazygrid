@@ -16,7 +16,7 @@
 # limitations under the License.
 
 # Version of the lazygrid package
-__version__ = "1.1.0"
+__version__ = "2.0.0"
 
 from .file_logger import initialize_logging, close_logging
 from .datasets import fetch_datasets, load_openml_dataset, load_npy_dataset
@@ -27,4 +27,4 @@ from .grid import generate_grid, generate_grid_search
 from .model_selection import compare_models, cross_validation, find_best_solution
 from .plotter import plot_confusion_matrix, plot_boxplots
 from .wrapper import Wrapper, SklearnWrapper, PipelineWrapper, KerasWrapper, \
-                     parse_fit_params, parse_neural_model, parse_sklearn_model
+                     dict_to_json, parse_neural_model, parse_sklearn_model

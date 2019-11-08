@@ -3,24 +3,54 @@ import functools
 import os
 import pickle
 import sys
-from typing import Callable
+from typing import Callable, Any, Union, List
 import json
 import keras
 import sklearn
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.pipeline import Pipeline
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC
 import tensorflow as tf
+import numpy as np
+import pandas as pd
+from .database import drop_db
 from .neural_models import reset_weights
-from .config import create_table_stmt, insert_model_stmt, query_stmt
 from .database import save_model_to_db, load_model_from_db
+from .statistics import confusion_matrix_aggregate
+from .plotter import plot_confusion_matrix
 
 
 class Wrapper(ABC):
+    """
+    Abstract wrapper class for machine learning models.
+    """
 
-    def __init__(self, model, fit_params, model_id,
-                 is_standalone, cv_split, dataset_id, dataset_name,
-                 db_name, **kwargs):
+    def __init__(self, model: Any, dataset_id=None, dataset_name=None, db_name=None,
+                 fit_params=None, predict_params=None, score_params=None, model_id=None,
+                 cv_split=None, is_standalone=True, **kwargs):
+
+        """
+        Wrapper initialization.
+
+        :param model: machine learning model
+        :param dataset_id: data set identifier
+        :param dataset_name: data set name
+        :param db_name: database name
+        :param fit_params: model's fit parameters
+        :param predict_params: model's predict parameters
+        :param score_params: model's score parameters
+        :param model_id: model identifier
+        :param cv_split: cross-validation split identifier
+        :param is_standalone: True if model can be used independently from other models
+        :param kwargs: other parameters
+        """
+
+        if not dataset_id:
+            db_name = None
+            dataset_id = 1
+            dataset_name = "default-dataset"
+        if not db_name:
+            db_name = "default-db"
+            drop_db(db_name)
 
         self.model_id = model_id
         self.model_name = str(model.__class__.__name__).split(".")[0]
@@ -29,7 +59,9 @@ class Wrapper(ABC):
 
         self.is_fitted = False
         self.is_standalone = is_standalone
-        self.fit_parameters = parse_fit_params(fit_params)
+        self.fit_parameters = dict_to_json(fit_params)
+        self.predict_parameters = dict_to_json(predict_params)
+        self.score_parameters = dict_to_json(score_params)
         self.models = None
         self.models_id = None
 
@@ -41,14 +73,25 @@ class Wrapper(ABC):
         self.dataset_id = dataset_id
         self.dataset_name = dataset_name
         self.db_name = db_name
-        self.previous_step_id = None
+        self.previous_step_id = -1
 
-        self.entry = (
+        self.entry = None
+        self.query = None
+
+    def get_entry(self) -> tuple:
+        """
+        Define database entry for the model.
+        :return: database entry
+        """
+
+        entry = (
             self.model_name,
             self.model_type,
             pickle.dumps(self.__class__, protocol=2),
             str(self.parameters),
             self.fit_parameters,
+            self.predict_parameters,
+            self.score_parameters,
             self.version,
             int(self.is_standalone),
             str(self.models_id),
@@ -58,26 +101,53 @@ class Wrapper(ABC):
             self.previous_step_id,
             self.serialized_model,
         )
+        return entry
 
-        self.query = (
+    def get_query(self) -> tuple:
+        """
+        Define database query for the model
+        :return: database query
+        """
+        query = (
             self.model_name,
             self.model_type,
             str(self.parameters),
             self.fit_parameters,
+            self.predict_parameters,
+            self.score_parameters,
             self.version,
             str(self.models_id),
             self.dataset_id,
             self.cv_split,
             self.previous_step_id,
         )
+        return query
 
     def to_database(self, **kwargs):
-        save_model_to_db(self, create_table_stmt, insert_model_stmt, query_stmt)
+        """
+        Send model into a database.
+        :param kwargs: some parameters
+        :return: query result
+        """
+        self.entry = self.get_entry()
+        self.query = self.get_query()
+        return save_model_to_db(self)
 
     def from_database(self, **kwargs):
-        return load_model_from_db(self, query_stmt)
+        """
+        Fetch model from a database.
+        :param kwargs: some parameters
+        :return: query result
+        """
+        self.query = self.get_query()
+        return load_model_from_db(self)
 
-    def load_model(self, **kwargs):
+    def load_model(self, **kwargs) -> Any:
+        """
+        Load model from database if possible.
+        :param kwargs: some parameters
+        :return: wrapped model
+        """
         result = self.from_database()
         if result:
             model_id, model_type, model_class, serialized_model, fit_parameters, is_standalone = result
@@ -85,50 +155,134 @@ class Wrapper(ABC):
             self.model_id = model_id
             self.model = pickle.loads(serialized_model)
             self.serialized_model = serialized_model
-        else:
-            self.is_fitted = False
         return self
 
-    def save_model(self, **kwargs):
+    def save_model(self, **kwargs) -> None:
+        """
+        Save model into database.
+        :param kwargs: some parameters
+        :return: None
+        """
         if not self.serialized_model:
             self.serialized_model = pickle.dumps(self.model, protocol=2)
-        self.is_fitted = True
-        self.to_database()
+        result = self.to_database()
+        if result:
+            model_id, model_type, model_class, serialized_model, fit_parameters, is_standalone = result
+            self.model_id = model_id
 
-    def set_random_seed(self, **kwargs):
+    def set_random_seed(self, seed, split_index, random_model, **kwargs):
+        """
+        Set model random state if possible.
+        :param seed: random seed
+        :param split_index: cross-validation split identifier
+        :param random_model: whether the model should have the same random state for each cross-validation split
+        :param kwargs: some parameters
+        :return: None
+        """
         raise NotImplementedError
 
-    def parse_parameters(self, **kwargs):
+    def parse_parameters(self, **kwargs) -> str:
+        """
+        Parse model parameters.
+        :param kwargs: some parameters
+        :return: parameters as a string
+        """
         raise NotImplementedError
 
-    def fit(self, **kwargs):
+    def fit(self, x, y, **kwargs) -> None:
+        """
+        Fit model with some samples.
+        :param x: train data
+        :param y: train labels
+        :param kwargs: some parameters
+        :return: None
+        """
         if not self.is_fitted:
-            self.model.fit(**kwargs)
+            self.model.fit(x, y)
+        self.is_fitted = True
 
-    def predict(self, **kwargs):
-        return self.model.predict(**kwargs)
+    def predict(self, x, **kwargs) -> Any:
+        """
+        Predict labels for some input samples.
+        :param x: input data
+        :param kwargs: some parameters
+        :return: predictions
+        """
+        return self.model.predict(x)
 
-    def score(self, **kwargs):
-        return self.model.score(**kwargs)
+    def score(self, x, y, **kwargs) -> Any:
+        """
+        Compute score for some input samples.
+        :param x: input data
+        :param y: input labels
+        :param kwargs: some parameters
+        :return: score
+        """
+        return self.model.score(x, y)
+
+    def plot_results(self, *args) -> None:
+        """
+        Plot results
+        :param args: some parameters
+        :return: None
+        """
+        generate_confusion_matrix(self, *args)
 
 
 class SklearnWrapper(Wrapper):
     """
-    Class to wrap model objects (sklearn, keras, tensorflow).
+    Class to wrap sklearn models.
     """
 
-    def __init__(self, model, fit_params=None, model_id=None, is_standalone=True):
-        Wrapper.__init__(self, model, fit_params, model_id, is_standalone)
-        self.parameters = self.parse_parameters(model)
+    def __init__(self, model: Any, dataset_id=None, dataset_name=None, db_name=None,
+                 fit_params=None, predict_params=None, score_params=None, model_id=None,
+                 cv_split=None, is_standalone=True, **kwargs):
+        """
+        Wrapper initialization.
 
-    def set_random_seed(self, seed: int):
+        :param model: machine learning model
+        :param dataset_id: data set identifier
+        :param dataset_name: data set name
+        :param db_name: database name
+        :param fit_params: model's fit parameters
+        :param predict_params: model's predict parameters
+        :param score_params: model's score parameters
+        :param model_id: model identifier
+        :param cv_split: cross-validation split identifier
+        :param is_standalone: True if model can be used independently from other models
+        :param kwargs: other parameters
+        """
+        model = corner_cases(model)
+        Wrapper.__init__(self, model, dataset_id, dataset_name, db_name, fit_params,
+                         predict_params, score_params, model_id, cv_split, is_standalone)
+        self.parameters = self.parse_parameters()
+
+    def set_random_seed(self, seed, split_index, random_model, **kwargs):
+        """
+        Set model random state if possible.
+        :param seed: random seed
+        :param split_index: cross-validation split identifier
+        :param random_model: whether the model should have the same random state for each cross-validation split
+        :param kwargs: some parameters
+        :return: None
+        """
+        if random_model:
+            random_state = split_index
+        else:
+            random_state = seed
         try:
-            self.model.set_params(**{"random_state": seed})
-        except AttributeError:
+            self.model.set_params(**{"random_state": random_state})
+        except (AttributeError, ValueError):
             pass
+        self.cv_split = split_index
+        self.parameters = self.parse_parameters()
 
-    def parse_parameters(self, model):
-        return parse_sklearn_model(model)
+    def parse_parameters(self) -> str:
+        """
+        Parse sklearn model parameters.
+        :return: model parameters
+        """
+        return parse_sklearn_model(self.model)
 
 
 class PipelineWrapper(Wrapper):
@@ -136,67 +290,154 @@ class PipelineWrapper(Wrapper):
     Class to wrap sklearn pipeline objects.
     """
 
-    def __init__(self, model, fit_params, **kwargs):
+    def __init__(self, model, dataset_id=None, dataset_name=None, db_name=None,
+                 fit_params=None, predict_params=None, score_params=None, model_id=None,
+                 cv_split=None, is_standalone=True, **kwargs):
+        """
+        Wrapper initialization.
 
-        Wrapper.__init__(self, model, fit_params, **kwargs)
+        :param model: machine learning model
+        :param dataset_id: data set identifier
+        :param dataset_name: data set name
+        :param db_name: database name
+        :param fit_params: model's fit parameters
+        :param predict_params: model's predict parameters
+        :param score_params: model's score parameters
+        :param model_id: model identifier
+        :param cv_split: cross-validation split identifier
+        :param is_standalone: True if model can be used independently from other models
+        :param kwargs: other parameters
+        """
+        model = corner_cases(model)
+        Wrapper.__init__(self, model, dataset_id, dataset_name, db_name, fit_params,
+                         predict_params, score_params, model_id, cv_split, is_standalone)
         self.models = []
         self.models_id = []
         for step in model.steps:
-            pipeline_step = SklearnWrapper(step[1], fit_params, is_standalone=False)
+            pipeline_step = SklearnWrapper(model=step[1], cv_split=cv_split, dataset_id=dataset_id,
+                                           dataset_name=dataset_name, db_name=db_name, is_standalone=False)
             self.models.append(pipeline_step)
             self.models_id.append(pipeline_step.model_id)
 
-    def save_model(self):
+    def save_model(self) -> None:
+        """
+        Save model into database.
+        :return: None
+        """
+        self.models_id = []
+        previous_step_id = -1
+        # save each step separately
         for model in self.models:
-            model.to_database()
-        self.is_fitted = True
+            model.previous_step_id = previous_step_id
+            model.save_model()
+            self.models_id.append(model.model_id)
+            previous_step_id = model.model_id
+        # serialize model
+        if not self.serialized_model:
+            self.serialized_model = pickle.dumps(self.model, protocol=2)
         self.to_database()
 
-    def load_model(self):
+    def load_model(self) -> Any:
+        """
+        Load model from database.
+        :return: None
+        """
         pipeline = []
         previous_step_id = -1
         i = 0
-        for step in self.model.models:
-            result = step.from_database(previous_step_id)
-            if result:
-                model_id, model_type, model_class, serialized_model, fit_parameters, is_standalone = result
-                fitted_step = pickle.loads(serialized_model)
-                pipeline_step = ("id_" + str(model_id), fitted_step)
-                previous_step_id = model_id
+        # load each step separately (if present)
+        for step in self.models:
+            step.previous_step_id = previous_step_id
+            fitted_step = step.load_model()
+            if fitted_step.model_id:
+                pipeline_step = ("id_" + str(fitted_step.model_id), fitted_step.model)
+                previous_step_id = fitted_step.model_id
+                self.models[i].is_fitted = True
             else:
-                pipeline_step = ("n_" + str(i), step.model)
+                pipeline_step = ("n_" + str(i), copy.deepcopy(step.model))
             pipeline.append(pipeline_step)
             i += 1
-        return PipelineWrapper(Pipeline(pipeline), self.fit_parameters)
+        self.model.steps = pipeline
+        return self
 
-    def set_random_seed(self, seed: int):
+    def set_random_seed(self, seed, split_index, random_model, **kwargs):
+        """
+        Set model random state if possible.
+        :param seed: random seed
+        :param split_index: cross-validation split identifier
+        :param random_model: whether the model should have the same random state for each cross-validation split
+        :param kwargs: some parameters
+        :return: None
+        """
+        if random_model:
+            random_state = split_index
+        else:
+            random_state = seed
         for parameter in list(self.model.get_params().keys()):
             if "random_state" in parameter:
-                self.model.set_params(**{parameter: seed})
+                self.model.set_params(**{parameter: random_state})
+        self.cv_split = split_index
+        # set random seed of pipeline steps
+        for model in self.models:
+            model.set_random_seed(seed, split_index, random_model)
 
     def fit(self, x_train, y_train, **kwargs):
+        """
+        Fit model with some samples.
+        :param x: train data
+        :param y: train labels
+        :param kwargs: some parameters
+        :return: None
+        """
         x_train_t = x_train
         i = 0
         for pipeline_step, model in zip(self.model.steps, self.models):
             if not model.is_fitted:
-                pipeline_step[1].fit(x_train_t, y_train)
-                self.models[i] = SklearnWrapper(copy.deepcopy(pipeline_step[1]), is_standalone=False)
+                # print("NOT FITTED!")
+                pipeline_step[1].fit(x_train_t, y_train, )
+                self.models[i] = SklearnWrapper(model=copy.deepcopy(pipeline_step[1]), cv_split=self.cv_split,
+                                                dataset_id=self.dataset_id, dataset_name=self.dataset_name,
+                                                db_name=self.db_name, is_standalone=False)
+                self.models[i].is_fitted = True
             if hasattr(pipeline_step[1], "transform"):
                 x_train_t = pipeline_step[1].transform(x_train_t)
             i += 1
+        self.is_fitted = True
 
 
 class KerasWrapper(Wrapper):
     """
-    Class to wrap model objects (sklearn, keras, tensorflow).
+    Class to wrap keras objects.
     """
 
-    def __init__(self, model, fit_params=None, model_id=None, is_standalone=True):
+    def __init__(self, model: Any, dataset_id=None, dataset_name=None, db_name=None,
+                 fit_params=None, predict_params=None, score_params=None, model_id=None,
+                 cv_split=None, is_standalone=True, **kwargs):
+        """
+        Wrapper initialization.
 
-        Wrapper.__init__(self, model, fit_params, model_id, is_standalone)
+        :param model: machine learning model
+        :param dataset_id: data set identifier
+        :param dataset_name: data set name
+        :param db_name: database name
+        :param fit_params: model's fit parameters
+        :param predict_params: model's predict parameters
+        :param score_params: model's score parameters
+        :param model_id: model identifier
+        :param cv_split: cross-validation split identifier
+        :param is_standalone: True if model can be used independently from other models
+        :param kwargs: other parameters
+        """
+        model = corner_cases(model)
+        Wrapper.__init__(self, model, dataset_id, dataset_name, db_name, fit_params,
+                         predict_params, score_params, model_id, cv_split, is_standalone)
         self.parameters = self.parse_parameters()
 
-    def load_model(self, **kwargs):
+    def load_model(self, **kwargs) -> Any:
+        """
+        Load model from database.
+        :return: None
+        """
         result = self.from_database()
         if result:
             model_id, model_type, model_class, serialized_model, fit_parameters, is_standalone = result
@@ -207,26 +448,75 @@ class KerasWrapper(Wrapper):
         else:
             self.is_fitted = False
 
-    def save_model(self, **kwargs):
+    def save_model(self, **kwargs) -> None:
+        """
+        Save model into database.
+        :return: None
+        """
         if not self.serialized_model:
             self.serialized_model = save_neural_model(self.model)
-        self.is_fitted = True
-        self.to_database()
+        result = self.to_database()
+        if result:
+            model_id, model_type, model_class, serialized_model, fit_parameters, is_standalone = result
+            self.model_id = model_id
 
-    def set_random_seed(self, seed: int):
-        tf.set_random_seed(seed=seed)
-        reset_weights(self.model, seed)
+    def set_random_seed(self, seed: int, split_index, random_model, **kwargs):
+        """
+        Set model random state if possible.
+        :param seed: random seed
+        :param split_index: cross-validation split identifier
+        :param random_model: whether the model should have the same random state for each cross-validation split
+        :param kwargs: some parameters
+        :return: None
+        """
+        if random_model:
+            random_state = split_index
+        else:
+            random_state = seed
+        tf.set_random_seed(seed=random_state)
+        reset_weights(self.model, random_state)
+        self.cv_split = split_index
+        self.parameters = self.parse_parameters()
 
-    def parse_parameters(self):
+    def parse_parameters(self) -> str:
+        """
+        Parse model parameters.
+        :return: model parameters
+        """
         return parse_neural_model(self.model)
 
-    def fit(self, x, y, fit_params):
-        self.model.fit(x, y, **fit_params)
+    def fit(self, x, y, **kwargs):
+        """
+        Fit model with some samples.
+        :param x: train data
+        :param y: train labels
+        :param kwargs: some parameters
+        :return: None
+        """
+        if not self.is_fitted:
+            fit_params = json.loads(self.fit_parameters)
+            self.model.fit(x, y, **fit_params)
+            self.is_fitted = True
 
-    def predict(self, x, predict_params):
+    def predict(self, x, **kwargs) -> Any:
+        """
+        Predict labels for some input samples.
+        :param x: input data
+        :param kwargs: some parameters
+        :return: predictions
+        """
+        predict_params = json.loads(self.predict_parameters)
         return self.model.predict(x, **predict_params)
 
-    def score(self, x, y, score_params):
+    def score(self, x, y, **kwargs) -> Any:
+        """
+        Compute score for some input samples.
+        :param x: input data
+        :param y: input labels
+        :param kwargs: some parameters
+        :return: score
+        """
+        score_params = json.loads(self.score_parameters)
         return self.model.score(x, y, **score_params)
 
 
@@ -237,7 +527,6 @@ def parse_sklearn_model(model):
     :param model: sklearn model
     :return: None
     """
-
     args = []
     for attribute_name in dir(model):
         if not attribute_name.startswith("_") and not attribute_name.endswith("_"):
@@ -261,7 +550,6 @@ def parse_neural_model(model):
     :param model: neural network model
     :return: None
     """
-
     parameters = []
     parameters.append("input_shape: " + str(model.input_shape))
     parameters.append("output_shape: " + str(model.output_shape))
@@ -311,34 +599,54 @@ def parse_neural_model(model):
     return str(parameters)
 
 
-def corner_cases(model):
+def corner_cases(model: Any) -> Any:
+    """
+    Check parameter synonyms.
+    :param model: sklearn model
+    :return: model
+    """
     if isinstance(model, RandomForestClassifier):
         if getattr(model, "n_estimators") == "warn":
             setattr(model, "n_estimators", 10)
     return model
 
 
-def parse_fit_params(fit_params):
-    if isinstance(fit_params, str):
-        fit_params = json.loads(fit_params)
-    # sort fit parameters dictionary
-    if fit_params:
-        fit_parameters = {}
-        for param_key in sorted(fit_params):
-            fit_parameters[param_key] = fit_params[param_key]
+def dict_to_json(dictionary: Union[dict, str]) -> str:
+    """
+    Sort dictionary by key and transform it into a string.
+    :param dictionary: python dictionary
+    :return: sorted dictionary as string
+    """
+    if isinstance(dictionary, str):
+        dictionary = json.loads(dictionary)
+    # sort dictionary by key
+    if dictionary:
+        sorted_dictionary = {}
+        for param_key in sorted(dictionary):
+            sorted_dictionary[param_key] = dictionary[param_key]
     else:
-        fit_parameters = {}
-    return json.dumps(fit_parameters)
+        sorted_dictionary = {}
+    return json.dumps(sorted_dictionary)
 
 
-def load_neural_model(model_bytes):
+def load_neural_model(model_bytes) -> Any:
+    """
+    Load keras model from binaries.
+    :param model_bytes: serialized keras model
+    :return: keras model
+    """
     temp = os.path.join("./tmp", "temp.h5")
     with open(temp, 'wb') as output_file:
         output_file.write(model_bytes)
     return keras.models.load_model(temp)
 
 
-def save_neural_model(model):
+def save_neural_model(model) -> Any:
+    """
+    Serialize keras model.
+    :param model: keras model
+    :return: serialized keras model
+    """
     if not os.path.isdir("./tmp"):
         os.mkdir("./tmp")
     temp = os.path.join("./tmp", "temp.h5")
@@ -346,3 +654,41 @@ def save_neural_model(model):
     with open(temp, 'rb') as input_file:
         fitted_model = input_file.read()
     return fitted_model
+
+
+def generate_confusion_matrix(model, y_pred_list: List, y_list: List,
+                              class_names: List[str], output_dir: str) -> None:
+    """
+    Generate and save confusion matrix.
+    :param model: wrapped model
+    :param y_pred_list: predicted labels
+    :param y_list: true labels
+    :param class_names: class names
+    :param output_dir: output directory
+    :return: None
+    """
+    if len(y_pred_list[0].shape) > 1:
+        y_pred_list = one_hot_to_categorical(y_pred_list)
+        y_list = one_hot_to_categorical(y_list)
+    conf_mat = confusion_matrix_aggregate(y_pred_list, y_list)
+    if not class_names:
+        class_names = [str(val) for val in np.unique(y_list[0])]
+    if model.model_id:
+        name = model.model_name + "_" + str(model.model_id)
+        title = model.model_name + " " + str(model.model_id)
+    else:
+        name = "_".join([model.model_name + "_" + str(id) for id, model in zip(model.models_id, model.models)])
+        title = " ".join([model.model_name for model in model.models])
+    file_name = os.path.join(output_dir, "conf_mat_" + name + ".png")
+    title = title
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+    plot_confusion_matrix(conf_mat, class_names, file_name, title)
+
+
+def one_hot_to_categorical(y_list: List) -> List:
+    y_list_categorical = []
+    for y in y_list:
+        y_categorical = np.argmax(y, axis=1)
+        y_list_categorical.append(y_categorical)
+    return y_list_categorical
