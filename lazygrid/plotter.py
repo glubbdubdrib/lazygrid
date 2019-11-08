@@ -19,47 +19,25 @@ import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-
-font = {'family': 'normal',
-        'size': 14}
-matplotlib.rc('font', **font)
+import seaborn as sns
+import pandas as pd
 
 
 # this function plots a confusion matrix
-def plot_confusion_matrix(confusion_matrix, classes, fileName, title='Confusion matrix', save = True):
+def plot_confusion_matrix(confusion_matrix, class_names, file_name, title='Confusion matrix', save = True):
     """
     This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
     """
-    cmNormalized = confusion_matrix.astype('float') / confusion_matrix.sum(axis=1)[:, np.newaxis]
 
-    # attempt at creating a more meaningful visualization: values that are in the "wrong box"
-    # (for which predicted label is different than true label) are turned negative
-    for i in range(0, cmNormalized.shape[0]):
-        for j in range(0, cmNormalized.shape[1]):
-            if i != j: cmNormalized[i, j] *= -1.0
+    sns.set(font_scale=5/(2+len(class_names)))
 
-    fig = plt.figure()
-    plt.imshow(cmNormalized, vmin=0.0, vmax=1.0, interpolation='nearest', cmap='Greens')  # cmap='RdYlGn')
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
-
-    thresh = cmNormalized.max() / 2.
-    for i, j in itertools.product(range(cmNormalized.shape[0]), range(cmNormalized.shape[1])):
-        text = "%.2f\n(%d)" % (abs(cmNormalized[i, j]), confusion_matrix[i, j])
-        plt.text(j, i, text, horizontalalignment="center",
-                 color="white" if cmNormalized[i, j] > thresh or cmNormalized[i, j] < -thresh else "black")
-
-    plt.tight_layout()
-    plt.ylabel('Prediction')
-    plt.xlabel('True')
-
-    fig.subplots_adjust(bottom=0.2)
-    if save: plt.savefig(fileName, dpi=800)
+    df_cm = pd.DataFrame(confusion_matrix, index=class_names, columns=class_names)
+    plt.figure()
+    ax = sns.heatmap(df_cm, annot=True, vmin=0, linewidths=.3, cmap="Greens", square= True)
+    ax.set(xlabel='True', ylabel='Prediction', title=title)
+    plt.savefig(file_name, dpi=800)
     plt.close()
+
 
     return
 
