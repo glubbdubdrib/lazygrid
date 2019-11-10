@@ -15,7 +15,6 @@ import pandas as pd
 from .database import drop_db
 from .neural_models import reset_weights
 from .database import save_model_to_db, load_model_from_db
-from .statistics import confusion_matrix_aggregate
 from .plotter import plot_confusion_matrix
 
 
@@ -332,7 +331,10 @@ class PipelineWrapper(Wrapper):
         # serialize model
         if not self.serialized_model:
             self.serialized_model = pickle.dumps(self.model, protocol=2)
-        self.to_database()
+        result = self.to_database()
+        if result:
+            model_id, model_type, model_class, serialized_model, fit_parameters, is_standalone = result
+            self.model_id = model_id
 
     def load_model(self) -> Any:
         """
@@ -433,7 +435,6 @@ class KerasWrapper(Wrapper):
         :param is_standalone: True if model can be used independently from other models
         :param kwargs: other parameters
         """
-        model = corner_cases(model)
         Wrapper.__init__(self, model, dataset_id, dataset_name, db_name, fit_params,
                          predict_params, score_params, model_id, cv_split, is_standalone)
         self.parameters = self.parse_parameters()

@@ -41,7 +41,7 @@ def plot_confusion_matrix(confusion_matrix: pd.DataFrame, font_scale: float,
     sns.set(font_scale=font_scale)
 
     plt.figure()
-    ax = sns.heatmap(confusion_matrix, annot=True, vmin=0, linewidths=.3, cmap="Greens", square= True)
+    ax = sns.heatmap(confusion_matrix, annot=True, vmin=0, linewidths=.3, cmap="Greens", square=True, fmt='d')
     ax.set(xlabel='Prediction', ylabel='True', title=title)
     plt.savefig(file_name, dpi=800)
     plt.close()
