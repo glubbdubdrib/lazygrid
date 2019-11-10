@@ -8,3 +8,5 @@ scikit-learn
 pandas
 openml
 statsmodels
+pycm==2.5
+seaborn
