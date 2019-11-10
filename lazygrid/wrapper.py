@@ -220,14 +220,6 @@ class Wrapper(ABC):
         """
         return self.model.score(x, y)
 
-    def plot_results(self, *args) -> None:
-        """
-        Plot results
-        :param args: some parameters
-        :return: None
-        """
-        generate_confusion_matrix(self, *args)
-
 
 class SklearnWrapper(Wrapper):
     """
@@ -319,6 +311,11 @@ class PipelineWrapper(Wrapper):
             self.models.append(pipeline_step)
             self.models_id.append(pipeline_step.model_id)
 
+        parameters = []
+        for step in self.models:
+            parameters.append(step.parameters)
+        self.parameters = str(parameters)
+
     def save_model(self) -> None:
         """
         Save model into database.
@@ -353,11 +350,19 @@ class PipelineWrapper(Wrapper):
                 pipeline_step = ("id_" + str(fitted_step.model_id), fitted_step.model)
                 previous_step_id = fitted_step.model_id
                 self.models[i].is_fitted = True
+                self.models_id[i] = previous_step_id
             else:
                 pipeline_step = ("n_" + str(i), copy.deepcopy(step.model))
             pipeline.append(pipeline_step)
             i += 1
         self.model.steps = pipeline
+        result = self.from_database()
+        if result:
+            model_id, model_type, model_class, serialized_model, fit_parameters, is_standalone = result
+            self.is_fitted = True
+            self.model_id = model_id
+            self.model = pickle.loads(serialized_model)
+            self.serialized_model = serialized_model
         return self
 
     def set_random_seed(self, seed, split_index, random_model, **kwargs):
@@ -654,41 +659,3 @@ def save_neural_model(model) -> Any:
     with open(temp, 'rb') as input_file:
         fitted_model = input_file.read()
     return fitted_model
-
-
-def generate_confusion_matrix(model, y_pred_list: List, y_list: List,
-                              class_names: List[str], output_dir: str) -> None:
-    """
-    Generate and save confusion matrix.
-    :param model: wrapped model
-    :param y_pred_list: predicted labels
-    :param y_list: true labels
-    :param class_names: class names
-    :param output_dir: output directory
-    :return: None
-    """
-    if len(y_pred_list[0].shape) > 1:
-        y_pred_list = one_hot_to_categorical(y_pred_list)
-        y_list = one_hot_to_categorical(y_list)
-    conf_mat = confusion_matrix_aggregate(y_pred_list, y_list)
-    if not class_names:
-        class_names = [str(val) for val in np.unique(y_list[0])]
-    if model.model_id:
-        name = model.model_name + "_" + str(model.model_id)
-        title = model.model_name + " " + str(model.model_id)
-    else:
-        name = "_".join([model.model_name + "_" + str(id) for id, model in zip(model.models_id, model.models)])
-        title = " ".join([model.model_name for model in model.models])
-    file_name = os.path.join(output_dir, "conf_mat_" + name + ".png")
-    title = title
-    if not os.path.isdir(output_dir):
-        os.mkdir(output_dir)
-    plot_confusion_matrix(conf_mat, class_names, file_name, title)
-
-
-def one_hot_to_categorical(y_list: List) -> List:
-    y_list_categorical = []
-    for y in y_list:
-        y_categorical = np.argmax(y, axis=1)
-        y_list_categorical.append(y_categorical)
-    return y_list_categorical
