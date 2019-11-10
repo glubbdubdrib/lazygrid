@@ -17,13 +17,14 @@
 
 import copy
 import traceback
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
 import functools
 from typing import Union, Callable, List
 from logging import Logger
+
+import pycm
 from scipy.stats import mannwhitneyu
 from statsmodels.stats.proportion import proportion_confint
 from sklearn.model_selection import StratifiedKFold
@@ -32,6 +33,7 @@ from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
 from .statistics import find_best_solution, confidence_interval_mean_t
 from .wrapper import Wrapper
+from .plotter import generate_confusion_matrix
 
 
 def cross_validation(model: Wrapper,
@@ -39,8 +41,7 @@ def cross_validation(model: Wrapper,
                      x_val: np.ndarray = None, y_val: np.ndarray = None,
                      random_data: bool = True, random_model: bool = True,
                      seed: int = 42, n_splits: int = 10, scoring: Union[Callable, str] = None,
-                     logger: Logger = None, plot_results: bool = True,
-                     output_dir: str = "./output", class_names: List[str] = None) -> (dict, list):
+                     logger: Logger = None) -> (dict, list, List[np.ndarray], List[np.ndarray]):
     """
     Apply cross-validation on the given model.
 
@@ -55,7 +56,7 @@ def cross_validation(model: Wrapper,
     >>> lg_model = lg.SklearnWrapper(LogisticRegression(), dataset_id=1,
     ...                              dataset_name="make-classification", db_name="lazygrid-test")
     >>>
-    >>> score, fitted_models = cross_validation(model=lg_model, x=x, y=y)
+    >>> score, fitted_models, y_pred_list, y_list = cross_validation(model=lg_model, x=x, y=y)
     >>> type(score)
     <class 'dict'>
     >>> type(fitted_models)
@@ -84,9 +85,10 @@ def cross_validation(model: Wrapper,
     :param n_splits: number of cross-validation iterations
     :param scoring: scoring function used to evaluate the model performance (Callable, f1 or accuracy)
     :param logger: object used to save progress
+    :param plot_results: if True plots will be saved
     :param output_dir: directory where output results will be saved
     :param class_names: label names
-    :return: cross-validation scores and fitted models
+    :return: cross-validation scores, fitted models, list of predicted labels and true labels
     """
 
     # Check input parameters
@@ -162,9 +164,8 @@ def cross_validation(model: Wrapper,
             score_train = learner.score(x_train, y_train)
             score_val = learner.score(x_val, y_val)
 
-            if plot_results:
-                y_pred_list.append(learner.predict(x_val))
-                y_list.append(y_val)
+            y_pred_list.append(learner.predict(x_val))
+            y_list.append(y_val)
 
         # save results
         score["train_cv"].append(score_train)
@@ -178,13 +179,11 @@ def cross_validation(model: Wrapper,
 
         split_index += 1
 
-    if plot_results:
-        learner.plot_results(y_pred_list, y_list, class_names, output_dir)
-
-    return score, fitted_models
+    return score, fitted_models, y_pred_list, y_list
 
 
-def _compute_result_summary(models: List[Wrapper], random_data: bool, random_model: bool,
+def _compute_result_summary(models: List[Wrapper], model_id_list: List[List],
+                            random_data: bool, random_model: bool,
                             seed: int, n_splits: int, scoring: [Callable, str],
                             test: Callable, alpha: int, cl: float,
                             train_cv: list, val_cv: list,
@@ -192,7 +191,10 @@ def _compute_result_summary(models: List[Wrapper], random_data: bool, random_mod
     """
     Compute a summary of the cross-validation and model comparison results.
 
+    Parameters
+    --------
     :param models: list of machine learning models (keras or sklearn)
+    :param model_id_list: list of model identifiers
     :param random_data: if True it enables data randomization
     :param random_model: if True it enables model randomization (if applicable)
     :param seed: seed used to make results reproducible
@@ -210,7 +212,7 @@ def _compute_result_summary(models: List[Wrapper], random_data: bool, random_mod
 
     columns = [
         "db-name", "db-did",
-        "model_name", "module", "version", "parameters", "fit_params", "submodels", "is_standalone",
+        "model_name", "model_id", "module", "version", "parameters", "fit_params", "submodels", "is_standalone",
         "train_cv", "val_cv",
         "mean", "ci-l-bound", "ci-u-bound", "separable", "pvalue",
         "test", "alpha", "metric",
@@ -247,6 +249,7 @@ def _compute_result_summary(models: List[Wrapper], random_data: bool, random_mod
             model.dataset_id,
 
             model.model_name,
+            model_id_list[index],
             model.model_type,
             model.version,
             model.parameters,
@@ -270,14 +273,74 @@ def _compute_result_summary(models: List[Wrapper], random_data: bool, random_mod
     return results
 
 
+def _generate_detailed_summary(models: List[Wrapper], confusion_matrix_list: List[pycm.ConfusionMatrix],
+                               best_indexes: List[int], output_dir: str) -> None:
+    """
+    Generate detailed summary about classification results, for the best models only.
+
+    Parameters
+    --------
+    :param models: list of fitted models
+    :param confusion_matrix_list:
+    :param best_indexes: indexes of the best models
+    :param output_dir: directory where results will be saved
+    :return: None
+    """
+
+    summary_overall = pd.DataFrame()
+    summary_class = pd.DataFrame()
+
+    for i in best_indexes:
+
+        model = models[i]
+        confusion_matrix = confusion_matrix_list[i]
+
+        if confusion_matrix:
+
+            if model.model_id:
+                model_id = model.model_name + " " + str(model.model_id)
+            else:
+                model_id = " ".join([m.model_name for m in model.models])
+
+            # overall summary
+            prefix_list = []
+            for c in confusion_matrix.classes:
+                prefix_list.append([model_id, "overall", c])
+            prefix_overall = pd.DataFrame(prefix_list, columns=["model", "summary type", "classes"])
+
+            overall_stat = pd.DataFrame.from_dict(confusion_matrix.overall_stat)
+            summary = pd.concat([prefix_overall, overall_stat], axis=1).reset_index().drop(columns=["index"])
+
+            summary_overall = pd.concat([summary_overall, summary], ignore_index=True)
+
+            # class summary
+            prefix_list = []
+            for c in confusion_matrix.classes:
+                prefix_list.append([model_id, "class summary", c])
+            prefix_class = pd.DataFrame(prefix_list, columns=["model", "summary type", "classes"])
+
+            class_stat = pd.DataFrame.from_dict(confusion_matrix.class_stat).reset_index()
+            summary = pd.concat([prefix_class, class_stat], axis=1).reset_index().drop(columns=["index"])
+
+            summary_class = pd.concat([summary_class, summary], ignore_index=True)
+
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+
+    summary_class.to_csv(os.path.join(output_dir, "summary_class.csv"))
+    summary_overall.to_csv(os.path.join(output_dir, "summary_overall.csv"))
+
+
 def compare_models(models: List[Wrapper],
                    x_train: np.ndarray, y_train: np.ndarray,
                    x_val: np.ndarray = None, y_val: np.ndarray = None,
                    random_data: bool = True, random_model: bool = True,
                    seed: int = 42, n_splits: int = 10, scoring: [Callable, str] = "f1",
                    test: Callable = mannwhitneyu, alpha: int = 0.05, cl: float = 0.05,
-                   experiment_name: str = "default", output_dir: str = "./output",
-                   verbose: bool = False, logger: Logger = None) -> pd.DataFrame:
+                   experiment_name: str = "model_comparison", output_dir: str = "./output",
+                   verbose: bool = False, logger: Logger = None,
+                   class_names: dict = None, font_scale: float = 1,
+                   encoding: str = "categorical") -> pd.DataFrame:
     """
     Compare machine learning models' performance on the provided data set, using
     cross-validation and statistical hypothesis tests.
@@ -328,20 +391,34 @@ def compare_models(models: List[Wrapper],
     :param output_dir: path to the folder where the results will be saved (as csv file)
     :param verbose: if True enables plots
     :param logger: object used to save progress
+    :param class_names: dictionary of label names like {0: "Class 1", 1: "Class 2"}
+    :param font_scale: font size of figures
+    :param encoding: label encoding; accepted values are: "categorical" or "one-hot"
     :return: Pandas DataFrame containing a summary of the results
     """
 
+    confusion_matrix_list = []
     train_cv = []
     val_cv = []
+    models_id_list = []
 
     # Cross-validation
     i = 0
     for model in models:
 
-        score, fitted_models = cross_validation(model, x=x_train, y=y_train, x_val=x_val, y_val=y_val,
-                                                random_data=random_data, random_model=random_model,
-                                                seed=seed, n_splits=n_splits, scoring=scoring, logger=logger)
+        score, fitted_models, y_pred_list, y_true_list = cross_validation(model, x=x_train, y=y_train,
+                                                                          x_val=x_val, y_val=y_val,
+                                                                          random_data=random_data,
+                                                                          random_model=random_model,
+                                                                          seed=seed, n_splits=n_splits,
+                                                                          scoring=scoring, logger=logger)
 
+        conf_mat = generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
+                                             y_pred_list, y_true_list, class_names,
+                                             font_scale, output_dir, encoding)
+
+        confusion_matrix_list.append(conf_mat)
+        models_id_list.append([m.model_id for m in fitted_models])
         models[i] = fitted_models[-1]
         train_cv.append(score["train_cv"])
         val_cv.append(score["val_cv"])
@@ -353,7 +430,7 @@ def compare_models(models: List[Wrapper],
                                                            use_continuity=False, alternative="two-sided")
 
     # Compute results' summary
-    results = _compute_result_summary(models, random_data, random_model,
+    results = _compute_result_summary(models, models_id_list, random_data, random_model,
                                       seed, n_splits, scoring, test, alpha, cl,
                                       train_cv, val_cv, pvalues, best_solutions)
 
@@ -363,8 +440,7 @@ def compare_models(models: List[Wrapper],
         os.mkdir(output_dir)
     results.to_csv(os.path.join(output_dir, experiment))
 
-    # # Plot results
-    # if verbose:
-    #     _plot_results(val_cv, best_solutions, pvalues, cl)
+    # save detailed summary for the best models
+    _generate_detailed_summary(models, confusion_matrix_list, best_solutions, output_dir)
 
     return results
