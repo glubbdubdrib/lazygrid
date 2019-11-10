@@ -29,9 +29,11 @@ Installation
 You can install LazyGrid from
 `PyPI <https://pypi.org/project/lazygrid/>`__:
 
-``shell script $ pip install lazygrid``
+.. code:: bash
 
-Lazygrid is known to be working on Python 3.5 and above. The package is
+    pip install lazygrid
+
+LazyGrid is known to be working on Python 3.5 and above. The package is
 compatible with `scikit-learn
 0.21 <https://scikit-learn.org/stable/index.html>`__, `tensorflow
 1.14 <https://www.tensorflow.org/>`__ and `Keras
@@ -40,11 +42,25 @@ compatible with `scikit-learn
 How to use
 ----------
 
-LazyGrid has three main features: \* it can generate all possible
-pipelines given a set of steps \* it can compare the performance of a
-list of models using cross-validation and statistical tests \* it
+LazyGrid has three main features: it can generate all possible
+pipelines given a set of steps, it can compare the performance of a
+list of models using cross-validation and statistical tests and it
 follows the memoization paradigm, avoiding fitting a model or a pipeline
-step twice
+step twice.
+
+Model wrapper
+~~~~~~~~~~~~~
+
+LazyGrid provides several classes to wrap machine learning models to make
+them able to interface properly with a
+`SQLite <https://www.sqlite.org/index.html>`__ database where fitted models
+will be stored.
+In order to use LazyGrid methods you should wrap your models first.
+Model wrappers include classes as:
+``SklearnWrapper``, ``PipelineWrapper`` (for ``sklearn`` pipelines), and
+``KerasWrapper``. Moreover you can extend the abstract class ``Wrapper``
+and customize the wrapper behavior according to your needs.
+
 
 Pipeline generation
 ~~~~~~~~~~~~~~~~~~~
@@ -153,13 +169,19 @@ compare keras models with different optimizers and fit parameters.
         y_pred = np.argmax(y_pred, axis=1)
         return f1_score(y, y_pred, average="weighted")
 
+    db_name = "database"
+    dataset_id = 2
+    dataset_name = "digits"
 
     # cross validation
     for model, fp in zip(models, fit_parameters):
-        score, fitted_models = lg.cross_validation(model=model, x=x_train, y=y_train, x_val=x_val, y_val=y_val,
-                                                   db_name="database", dataset_id=1, random_data=False,
-                                                   dataset_name="make-classification", n_splits=3,
-                                                   scoring=score_fun, fit_params=fp)
+        model = lg.KerasWrapper(model, fit_params=fp,
+                                db_name=db_name, dataset_id=dataset_id, dataset_name=dataset_name)
+        score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x_train, y=y_train,
+                                                                             x_val=x_val, y_val=y_val,
+                                                                             random_data=False, n_splits=3,
+                                                                             scoring=score_fun)
+
 
 Model comparison
 ~~~~~~~~~~~~~~~~
@@ -177,9 +199,9 @@ model the ``cross_val_score`` method provided by ``sklearn``.
 
 Finally, you can collect the cross-validation scores into a single list
 and call the ``find_best_solution`` method provided by LazyGrid. Such
-method applies the following algorithm: \* it looks for the model having
+method applies the following algorithm: it looks for the model having
 the highest mean value over its cross-validation scores ("the best
-model"); \* it compares the distribution of the scores of each model
+model"); it compares the distribution of the scores of each model
 against the distribution of the scores of the best model applying a
 `statistical hypothesis test <lazygrid/statistics.md>`__.
 
@@ -207,7 +229,9 @@ level for the test.
     score3 = cross_val_score(estimator=model3, X=x, y=y, cv=10)
 
     scores = [score1, score2, score3]
-    best_idx, best_solutions_idx, pvalues = lg.find_best_solution(scores, test=mannwhitneyu, alpha=0.05)
+    best_idx, best_solutions_idx, pvalues = lg.find_best_solution(scores,
+                                                                  test=mannwhitneyu,
+                                                                  alpha=0.05)
 
 Memoization: optimized cross-validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -233,7 +257,8 @@ fetches the model that has already been fitted from the database.
     x, y = make_classification(random_state=42)
 
     preprocessors = [StandardScaler(), RobustScaler()]
-    feature_selectors = [SelectKBest(score_func=f_classif, k=1), SelectKBest(score_func=f_classif, k=2)]
+    feature_selectors = [SelectKBest(score_func=f_classif, k=1),
+                         SelectKBest(score_func=f_classif, k=2)]
     classifiers = [RandomForestClassifier(random_state=42), SVC(random_state=42)]
 
     elements = [preprocessors, feature_selectors, classifiers]
@@ -241,88 +266,64 @@ fetches the model that has already been fitted from the database.
     models = lg.generate_grid(elements)
 
     for model in models:
-        score, fitted_models = lg.cross_validation(model=model, x=x, y=y,
-                                                   db_name="database", dataset_id=1,
-                                                   dataset_name="make-classification")
-
-**Please note** that, the ``fitted_model`` returned by the
-cross-validation procedure is
-a list of ``ModelWrapper`` objects. Such objects are used to
-conveniently wrap both ``sklearn`` and ``keras`` models. They
-contain useful information that can be used to fetch models
-from the database (e.g. model parameters, fit parameters,
-model name, model version, etc.).
-
-The ``fetch_fitted_models`` can be used to retrieve all
-fitted models (as ``ModelWrapper`` objects) from a database:
-
-.. code:: python
-
-    import lazygrid as lg
-
-    fitted_models = lg.fetch_fitted_models(db_name="database")
-
+        model = lg.SklearnWrapper(model, dataset_id=1, db_name="sklearn-db",
+                                  dataset_name="make-classification")
+        score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x, y=y)
 
 
 Plots
 ~~~~~
 
-LazyGrid includes some standard features for presenting results as
-plots, among which confusion matrixes and box plots.
+Should you need a visual output of the results, LazyGrid includes
+the ``generate_confusion_matrix`` to save a cunfusion matrix figure
+and to return a `pycm <https://www.pycm.ir/>`__ ConfusionMatrix object.
 
 .. code:: python
 
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.datasets import make_classification
-    import lazygrid as lg
+    ...
+    score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x_train, y=y_train,
+                                                                         x_val=x_val, y_val=y_val,
+                                                                         random_data=False, n_splits=3,
+                                                                         scoring=score_fun)
 
-    x, y = make_classification(random_state=42)
+    conf_mat = lg.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
+                                            y_pred_list, y_true_list, encoding="one-hot")
 
-    model = LogisticRegression(random_state=42)
-    score, fitted_models = lg.cross_validation(model=model, x=x, y=y,
-                                               db_name="database", dataset_id=1,
-                                               dataset_name="make-classification")
 
-    conf_mat = lg.confusion_matrix_aggregate(fitted_models, x, y)
-    classes = ["P", "N"]
-    title = "Confusion matrix"
-    lg.plot_confusion_matrix(conf_mat, classes, "conf_mat.png", title)
+.. image:: https://github.com/glubbdubdrib/lazygrid/tree/master/docs/conf_mat_Sequential_3.png
+    :width: 400
+    :alt: Alternative text
+
 
 Automatic comparison
 ~~~~~~~~~~~~~~~~~~~~
 
 The ``compare_models`` method provides a friendly approach to compare a
-list of models: \* it calls the ``cross_validation`` method for each
+list of models: it calls the ``cross_validation`` method for each
 model, automatically performing the optimized cross-validation using the
-memoization paradigm; \* it calls the ``find_best_solution`` method,
-applying a statistical test on the cross-validation results; \* it
+memoization paradigm; it calls the ``find_best_solution`` method,
+applying a statistical test on the cross-validation results; it
 returns a ``Pandas.DataFrame`` containing a summary of the results.
 
 .. code:: python
 
+    from sklearn.linear_model import LogisticRegression, RidgeClassifier
     from sklearn.ensemble import RandomForestClassifier
-    from sklearn.svm import SVC
-    from sklearn.feature_selection import SelectKBest, f_classif
-    from sklearn.preprocessing import RobustScaler, StandardScaler
     from sklearn.datasets import make_classification
+    import pandas as pd
     import lazygrid as lg
 
     x, y = make_classification(random_state=42)
 
-    preprocessors = [StandardScaler(), RobustScaler()]
-    feature_selectors = [SelectKBest(score_func=f_classif, k=1), SelectKBest(score_func=f_classif, k=2)]
-    classifiers = [RandomForestClassifier(random_state=42), SVC(random_state=42)]
+    lg_model_1 = lg.SklearnWrapper(LogisticRegression(), dataset_id=1,
+                                   dataset_name="make-classification", db_name="lazygrid-test")
+    lg_model_2 = lg.SklearnWrapper(RandomForestClassifier(), dataset_id=1,
+                                   dataset_name="make-classification", db_name="lazygrid-test")
+    lg_model_3 = lg.SklearnWrapper(RidgeClassifier(), dataset_id=1,
+                                   dataset_name="make-classification", db_name="lazygrid-test")
 
-    elements = [preprocessors, feature_selectors, classifiers]
-
-    models = lg.generate_grid(elements)
-
-    fit_params = []
-    for model in models:
-        fit_params.append({})
-
-    results = lg.compare_models(models=models, x_train=x, y_train=y, params=fit_params,
-                                dataset_id=1, dataset_name="make-classification", n_splits=10)
+    models = [lg_model_1, lg_model_2, lg_model_3]
+    results = lg.compare_models(models=models, x_train=x, y_train=y)
 
 Data sets APIs
 ~~~~~~~~~~~~~~
@@ -332,9 +333,9 @@ LazyGrid includes a set of easy-to-use APIs to fetch
 database of more than 20000 data sets).
 
 The ``fetch_datasets`` method allows you to smartly handle such data
-sets: \* it looks for OpenML data sets compliant with the requirements
-specified; \* for such data sets, it fetches the characteristics of
-their latest version; \* it saves in a local cache file the properties
+sets: it looks for OpenML data sets compliant with the requirements
+specified; for such data sets, it fetches the characteristics of
+their latest version; it saves in a local cache file the properties
 of such data sets, so that experiments can be easily reproduced using
 the same data sets and versions.
 
