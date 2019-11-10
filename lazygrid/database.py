@@ -177,6 +177,8 @@ def drop_db(db_name) -> None:
     >>>
     >>> drop_db()
 
+    Parameters
+    --------
     :param db_name: database name
     :return: None
     """

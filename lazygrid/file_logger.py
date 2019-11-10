@@ -22,7 +22,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 
 
-def initialize_logging(path: str, log_name: str, date: bool = True) -> logging.Logger:
+def initialize_logging(path: str = "./log", log_name: str = "default-logger", date: bool = True) -> logging.Logger:
     """
     Initialize log file handler.
 

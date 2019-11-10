@@ -125,6 +125,8 @@ def _is_correct_task(task: str, db: dict) -> bool:
     """
     Check if the current data set is compatible with the specified task.
 
+    Parameters
+    --------
     :param task: regression or classification
     :param db: OpenML data set dictionary
     :return: True if the task and the data set are compatible

@@ -28,6 +28,8 @@ def reset_weights(model: Sequential, seed: int = 42):
     """
     Random reset of neural network's weights.
 
+    Parameters
+    --------
     :param model: Keras, theano, or tensorflow model
     :param seed: seed used to make results reproducible
     :return: None
@@ -61,6 +63,8 @@ def keras_classifier(layers: list, input_shape: tuple, n_classes: int,
     """
     Generate keras feed-forward neural model for classification.
 
+    Parameters
+    --------
     :param layers: list of layers
     :param input_shape: shape of input data
     :param n_classes: number of classes

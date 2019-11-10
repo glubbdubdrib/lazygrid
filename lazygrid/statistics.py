@@ -22,6 +22,7 @@ from scipy.stats import mannwhitneyu
 from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
 from sklearn.metrics import confusion_matrix
+import pandas as pd
 
 
 def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> List[float]:
@@ -148,11 +149,3 @@ def find_best_solution(solutions: list,
         index += 1
 
     return best_idx, best_solutions_idx, pvalues
-
-
-def confusion_matrix_aggregate(y_pred_list, y_list):
-    y_pred_list = np.concatenate(y_pred_list, axis=0)
-    y_list = np.concatenate(y_list, axis=0)
-    conf_mat = confusion_matrix(y_list, y_pred_list)
-    conf_mat = np.rot90(conf_mat, 2).T
-    return conf_mat
