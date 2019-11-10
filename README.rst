@@ -290,7 +290,7 @@ and to return a `pycm <https://www.pycm.ir/>`__ ConfusionMatrix object.
                                             y_pred_list, y_true_list, encoding="one-hot")
 
 
-.. image:: https://github.com/glubbdubdrib/lazygrid/tree/master/docs/conf_mat_Sequential_3.png
+.. image:: https://raw.githubusercontent.com/glubbdubdrib/lazygrid/master/docs/conf_mat_Sequential_3.png
     :width: 400
     :alt: Alternative text
 
