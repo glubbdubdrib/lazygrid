@@ -78,6 +78,19 @@ class TestCrossValidation(unittest.TestCase):
         from sklearn.model_selection import StratifiedKFold
         import lazygrid as lg
         import numpy as np
+        import random as rn
+        import os
+        import tensorflow as tf
+
+        seed = 42  # Here sd means seed.
+        np.random.seed(seed)
+        rn.seed(seed)
+        os.environ['PYTHONHASHSEED'] = str(seed)
+        from keras import backend as K
+        config = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+        tf.set_random_seed(seed)
+        sess = tf.Session(graph=tf.get_default_graph(), config=config)
+        K.set_session(sess)
 
         # define keras model generator
         def create_keras_model(optimizer):
@@ -113,7 +126,7 @@ class TestCrossValidation(unittest.TestCase):
 
         # cast keras model into sklearn model
         kmodel = create_keras_model(optimizer="SGD")
-        fit_params = {"epochs": 5, "batch_size": 10}
+        fit_params = {"epochs": 5, "batch_size": 10, "shuffle": False}
 
         # define scoring function for one-hot-encoded labels
         def score_fun(y, y_pred):
@@ -141,7 +154,7 @@ class TestCrossValidation(unittest.TestCase):
             self.assertTrue(isinstance(fitted_model, lg.KerasWrapper))
 
         # check confusion matrix
-        self.assertTrue(conf_mat.matrix == {0: {0: 54, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 1: {0: 0, 1: 48, 2: 0, 3: 0, 4: 2, 5: 0, 6: 0, 7: 0, 8: 7, 9: 0}, 2: {0: 0, 1: 0, 2: 53, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 1, 9: 0}, 3: {0: 0, 1: 0, 2: 0, 3: 52, 4: 0, 5: 0, 6: 0, 7: 0, 8: 5, 9: 0}, 4: {0: 0, 1: 0, 2: 0, 3: 0, 4: 57, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 5: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 57, 6: 0, 7: 0, 8: 0, 9: 0}, 6: {0: 0, 1: 2, 2: 0, 3: 0, 4: 0, 5: 0, 6: 54, 7: 0, 8: 1, 9: 0}, 7: {0: 0, 1: 0, 2: 0, 3: 0, 4: 1, 5: 0, 6: 0, 7: 53, 8: 0, 9: 0}, 8: {0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0, 7: 0, 8: 52, 9: 0}, 9: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 3, 6: 0, 7: 0, 8: 0, 9: 51}})
+        self.assertTrue(conf_mat.matrix == {0: {0: 54, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 1: {0: 0, 1: 37, 2: 0, 3: 2, 4: 0, 5: 0, 6: 0, 7: 0, 8: 14, 9: 4}, 2: {0: 1, 1: 0, 2: 53, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 3: {0: 0, 1: 0, 2: 0, 3: 55, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2, 9: 0}, 4: {0: 0, 1: 0, 2: 0, 3: 0, 4: 57, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 5: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 54, 6: 0, 7: 0, 8: 0, 9: 3}, 6: {0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 0, 6: 55, 7: 0, 8: 1, 9: 0}, 7: {0: 1, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 51, 8: 0, 9: 2}, 8: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0, 7: 0, 8: 52, 9: 1}, 9: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 54}})
 
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestCrossValidation)
