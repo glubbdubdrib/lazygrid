@@ -344,16 +344,21 @@ class PipelineWrapper(Wrapper):
         pipeline = []
         previous_step_id = -1
         i = 0
+        is_fetchable = True
         # load each step separately (if present)
         for step in self.models:
             step.previous_step_id = previous_step_id
-            fitted_step = step.load_model()
-            if fitted_step.model_id:
-                pipeline_step = ("id_" + str(fitted_step.model_id), fitted_step.model)
-                previous_step_id = fitted_step.model_id
-                self.models[i].is_fitted = True
-                self.models_id[i] = previous_step_id
-            else:
+            if is_fetchable:
+                fitted_step = step.load_model()
+                if fitted_step.model_id and is_fetchable:
+                    pipeline_step = ("id_" + str(fitted_step.model_id), fitted_step.model)
+                    previous_step_id = fitted_step.model_id
+                    self.models[i].is_fitted = True
+                    self.models_id[i] = previous_step_id
+                else:
+                    # from now on the pipeline will be different, you can't fetch from database other models
+                    is_fetchable = False
+            if not is_fetchable:
                 pipeline_step = ("n_" + str(i), copy.deepcopy(step.model))
             pipeline.append(pipeline_step)
             i += 1
