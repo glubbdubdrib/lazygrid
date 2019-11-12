@@ -9,3 +9,5 @@ openml
 statsmodels
 pycm==2.5
 seaborn
+Pygments
+codecov
