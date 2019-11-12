@@ -24,12 +24,12 @@ with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='lazygrid',
-    version='2.0.0',
+    version='2.0.1',
     description='LazyGrid: Efficient cross-validation and statistical tests of complex '
                 'machine learning pipelines and neural networks',
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    url='https://github.com/pietrobarbiero/lazygrid',
+    url='https://github.com/glubbdubdrib/lazygrid',
     author='Pietro Barbiero and Giovanni Squillero',
     author_email='cleisthenes.megacleos@gmail.com',
     license="Apache 2.0",

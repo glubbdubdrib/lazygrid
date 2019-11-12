@@ -138,7 +138,10 @@ def cross_validation(model: Wrapper,
             y_train = y
 
         # load learner
-        learner = copy.deepcopy(model)
+        try:
+            learner = copy.deepcopy(model)
+        except TypeError:
+            learner = model
         learner.set_random_seed(seed, split_index, random_model)
 
         # check if model has already been computed
