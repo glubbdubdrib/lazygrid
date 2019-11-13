@@ -16,20 +16,15 @@
 # limitations under the License.
 import functools
 import traceback
-from abc import ABCMeta
-from typing import Union, Tuple, List
-
-import numpy as np
-import sys
+from typing import Tuple, List
 from itertools import product
 import copy
-
 from keras import Sequential, Model
+from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.feature_selection import RFE, SelectKBest, f_classif
-from sklearn.datasets import make_classification
+from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.preprocessing import RobustScaler, StandardScaler
 
 
@@ -79,8 +74,8 @@ def generate_grid(elements: list) -> list:
     return pipelines
 
 
-def generate_grid_search(model: Union[Sequential, Model, ABCMeta, Pipeline],
-                         model_params: dict, fit_params: dict) -> Tuple[list, List[dict]]:
+def generate_grid_search(model: KerasClassifier, model_params: dict,
+                         fit_params: dict) -> Tuple[List[Model], List[dict]]:
     """
     Generate all possible combinations of models.
 
