@@ -1,48 +1,75 @@
 LazyGrid
 ========
 
-|Maintenance yes|
-|made-with-python|
-|PyPI download total|
-
-|Pypi-version|
-|Build-pass|
+|Build|
 |Coverage|
 
+|PyPI download total|
 |PyPI license|
-|PyPI pyversions|
 
-|GitHub stars|
 
-.. |GitHub stars| image:: https://img.shields.io/github/stars/Naereen/StrapDown.js.svg?style=social&label=Star&maxAge=2592000
-   :target: https://GitHub.com/Naereen/StrapDown.js/stargazers/
+|PyPI-version|
+|Language|
 
-.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/lazygrid.svg
-   :target: https://pypi.python.org/pypi/lazygrid/
+|Repo size|
+|Open issues|
 
-.. |PyPI license| image:: https://img.shields.io/pypi/l/lazygrid.svg
-   :target: https://pypi.python.org/pypi/lazygrid/
+|Maintenance|
+|Contributors|
 
-.. |Download-count| image:: https://pepy.tech/badge/lazygrid
-  :target: https://pepy.tech/project/lazygrid
+|Followers|
+|Stars|
 
-.. |PyPI download total| image:: https://img.shields.io/pypi/dt/lazygrid.svg
-   :target: https://pypi.python.org/pypi/lazygrid/
 
-.. |Build-pass| image:: https://travis-ci.org/glubbdubdrib/lazygrid.svg?branch=master
+
+.. |Build| image:: https://img.shields.io/travis/glubbdubdrib/lazygrid?label=Master%20Build&style=for-the-badge
+    :alt: Travis (.org)
     :target: https://travis-ci.org/glubbdubdrib/lazygrid
 
-.. |Pypi-version| image:: https://badge.fury.io/py/lazygrid.svg
-    :target: https://badge.fury.io/py/lazygrid
+.. |Coverage| image:: https://img.shields.io/codecov/c/gh/glubbdubdrib/lazygrid?label=Test%20Coverage&style=for-the-badge
+    :alt: Codecov
+    :target: https://codecov.io/gh/glubbdubdrib/lazygrid
 
-.. |Coverage| image:: https://codecov.io/gh/glubbdubdrib/lazygrid/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/glubbdubdrib/lazygrid
+.. |Repo size| image:: https://img.shields.io/github/repo-size/glubbdubdrib/lazygrid?style=for-the-badge
+    :alt: GitHub repo size
+    :target: https://github.com/glubbdubdrib/lazygrid
 
-.. |Maintenance yes| image:: https://img.shields.io/badge/Maintained%3F-yes-green.svg
-   :target: https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity
+.. |PyPI download total| image:: https://img.shields.io/pypi/dm/lazygrid?label=downloads&style=for-the-badge
+    :alt: PyPI - Downloads
+    :target: https://pypi.python.org/pypi/lazygrid/
 
-.. |made-with-python| image:: https://img.shields.io/badge/Made%20with-Python-1f425f.svg
-   :target: https://www.python.org/
+.. |Open issues| image:: https://img.shields.io/github/issues/glubbdubdrib/lazygrid?style=for-the-badge
+    :alt: GitHub issues
+    :target: https://github.com/glubbdubdrib/lazygrid
+
+.. |PyPI license| image:: https://img.shields.io/pypi/l/lazygrid.svg?style=for-the-badge
+   :target: https://pypi.python.org/pypi/lazygrid/
+
+.. |Followers| image:: https://img.shields.io/github/followers/glubbdubdrib?style=social
+    :alt: GitHub followers
+    :target: https://github.com/glubbdubdrib/lazygrid
+
+.. |Stars| image:: https://img.shields.io/github/stars/glubbdubdrib/lazygrid?style=social
+    :alt: GitHub stars
+    :target: https://github.com/glubbdubdrib/lazygrid
+
+.. |PyPI-version| image:: https://img.shields.io/pypi/v/lazygrid?style=for-the-badge
+    :alt: PyPI
+    :target: https://pypi.python.org/pypi/lazygrid/
+
+.. |Contributors| image:: https://img.shields.io/github/contributors/glubbdubdrib/lazygrid?style=for-the-badge
+    :alt: GitHub contributors
+    :target: https://github.com/glubbdubdrib/lazygrid
+
+.. |Language| image:: https://img.shields.io/github/languages/top/glubbdubdrib/lazygrid?style=for-the-badge
+    :alt: GitHub top language
+    :target: https://github.com/glubbdubdrib/lazygrid
+
+.. |Maintenance| image:: https://img.shields.io/maintenance/yes/2019?style=for-the-badge
+    :alt: Maintenance
+    :target: https://github.com/glubbdubdrib/lazygrid
+
+
 
 LazyGrid is a python package providing an automatic, efficient and flexible
 implementation of complex machine learning pipeline generation and cross-validation.
@@ -55,7 +82,7 @@ it won't be fitted again.
 Table Of Contents
 ^^^^^^^^^^^^^^^^^
 
--  `Installation <#installation>`__
+-  `Getting Started <#getting-started>`__
 -  `How to use <#how-to-use>`__
 
    -  `Pipeline generation <#pipeline-generation>`__
@@ -67,23 +94,28 @@ Table Of Contents
    -  `Automatic comparison <#automatic-comparison>`__
    -  `Data sets APIs <#data-sets-apis>`__
 
--  `Contributing to LazyGrid <CONTRIBUTING.md>`__
+-  `Running tests <#running-tests>`__
+-  `Contributing <#contributing>`__
+-  `Authors <#authors>`__
+-  `License <#license>`__
 
-Installation
-------------
+Getting Started
+---------------
 
-You can install LazyGrid from
+You can install LazyGrid and with all its dependencies from
 `PyPI <https://pypi.org/project/lazygrid/>`__:
 
 .. code:: bash
 
-    pip install lazygrid
+    $ pip install -r requirements.txt lazygrid
 
-from source code:
+or from source code:
 
 .. code:: bash
 
-    pip install -r requirements.txt
+    $ git clone https://github.com/glubbdubdrib/lazygrid.git
+    $ cd ./lazygrid
+    $ pip install -r requirements.txt .
 
 LazyGrid is known to be working on Python 3.5 and above. The package is
 compatible with `scikit-learn
@@ -405,6 +437,38 @@ required data set version.
     data_id = datasets.loc["iris"].did
 
     x, y, n_classes = lg.load_openml_dataset(data_id)
+
+
+
+Running tests
+-------------
+
+You can run all unittests from command line by using python:
+
+.. code:: bash
+
+    $ python -m unittest discover
+
+or coverage:
+
+.. code:: bash
+
+    $ coverage run -m unittest discover
+
+
+Contributing
+------------
+
+Please read
+`Contributing.md <https://github.com/glubbdubdrib/lazygrid/blob/master/CONTRIBUTING.md>`__
+for details on our code of conduct, and the process for submitting pull requests to us.
+
+
+Authors
+-------
+
+* Pietro Barbiero - Mathematical engineer - `GitHub <https://github.com/pietrobarbiero>`__
+* Giovanni Squillero - Professor of computer science at Politecnico di Torino - `GitHub <https://github.com/squillero>`__
 
 Licence
 -------
