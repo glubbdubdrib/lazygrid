@@ -16,9 +16,7 @@
 # limitations under the License.
 
 from keras import Sequential
-from keras.layers import Dense, Activation, InputLayer
-from sklearn.preprocessing import LabelEncoder
-from keras.utils import to_categorical
+from keras.layers import Dense
 from keras.initializers import glorot_uniform  # Or your initializer of choice
 from keras import optimizers
 import keras.backend as K

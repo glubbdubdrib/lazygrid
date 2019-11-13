@@ -1,21 +1,17 @@
 import copy
-import functools
 import os
 import pickle
 import sys
-from typing import Callable, Any, Union, List
+from typing import Callable, Any, Union
 import json
 import keras
 import sklearn
 from sklearn.ensemble import RandomForestClassifier
 from abc import ABC
 import tensorflow as tf
-import numpy as np
-import pandas as pd
 from .database import drop_db
 from .neural_models import reset_weights
 from .database import save_model_to_db, load_model_from_db
-from .plotter import plot_confusion_matrix
 
 
 class Wrapper(ABC):
