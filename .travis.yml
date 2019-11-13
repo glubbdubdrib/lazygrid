@@ -33,4 +33,4 @@ script:
   - python -m unittest discover || python3 -m unittest discover
 
 after_success:
-  - codecov
+  - bash <(curl -s https://codecov.io/bash)
