@@ -1,10 +1,56 @@
 LazyGrid
 ========
 
-LazyGrid is a machine learning model comparator that follows the
-`memoization <https://en.wikipedia.org/wiki/Memoization>`__ paradigm,
-i.e. that is able to save fitted models and return them if required
-later.
+|Maintenance yes|
+|made-with-python|
+|PyPI download total|
+
+|Pypi-version|
+|Build-pass|
+|Coverage|
+
+|PyPI license|
+|PyPI pyversions|
+
+|GitHub stars|
+
+.. |GitHub stars| image:: https://img.shields.io/github/stars/Naereen/StrapDown.js.svg?style=social&label=Star&maxAge=2592000
+   :target: https://GitHub.com/Naereen/StrapDown.js/stargazers/
+
+.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/lazygrid.svg
+   :target: https://pypi.python.org/pypi/lazygrid/
+
+.. |PyPI license| image:: https://img.shields.io/pypi/l/lazygrid.svg
+   :target: https://pypi.python.org/pypi/lazygrid/
+
+.. |Download-count| image:: https://pepy.tech/badge/lazygrid
+  :target: https://pepy.tech/project/lazygrid
+
+.. |PyPI download total| image:: https://img.shields.io/pypi/dt/lazygrid.svg
+   :target: https://pypi.python.org/pypi/lazygrid/
+
+.. |Build-pass| image:: https://travis-ci.org/glubbdubdrib/lazygrid.svg?branch=master
+    :target: https://travis-ci.org/glubbdubdrib/lazygrid
+
+.. |Pypi-version| image:: https://badge.fury.io/py/lazygrid.svg
+    :target: https://badge.fury.io/py/lazygrid
+
+.. |Coverage| image:: https://codecov.io/gh/glubbdubdrib/lazygrid/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/glubbdubdrib/lazygrid
+
+.. |Maintenance yes| image:: https://img.shields.io/badge/Maintained%3F-yes-green.svg
+   :target: https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity
+
+.. |made-with-python| image:: https://img.shields.io/badge/Made%20with-Python-1f425f.svg
+   :target: https://www.python.org/
+
+LazyGrid is a python package providing an automatic, efficient and flexible
+implementation of complex machine learning pipeline generation and cross-validation.
+
+Before fitting a model or a pipeline step, LazyGrid checks inside an internal
+SQLite database if the model has already been fitted. If the model is found,
+it won't be fitted again.
+
 
 Table Of Contents
 ^^^^^^^^^^^^^^^^^
@@ -32,6 +78,12 @@ You can install LazyGrid from
 .. code:: bash
 
     pip install lazygrid
+
+from source code:
+
+.. code:: bash
+
+    pip install -r requirements.txt
 
 LazyGrid is known to be working on Python 3.5 and above. The package is
 compatible with `scikit-learn
