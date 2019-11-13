@@ -28,6 +28,26 @@ class TestDatasets(unittest.TestCase):
         self.assertEqual(y.shape, (150,))
         self.assertEqual(n_classes, 3)
 
+    def test_load_npy_dataset(self):
+
+        from sklearn.datasets import make_classification
+        import numpy as np
+        import lazygrid as lg
+
+        x, y = make_classification(random_state=42)
+
+        path_x, path_y = "x.npy", "y.npy"
+        np.save(path_x, x)
+        np.save(path_y, y)
+
+        x, y, n_classes = lg.load_npy_dataset(path_x, path_y)
+
+        self.assertTrue(isinstance(x, np.ndarray))
+        self.assertTrue(isinstance(y, np.ndarray))
+        self.assertEqual(x.shape, (100, 20))
+        self.assertEqual(y.shape, (100,))
+        self.assertEqual(n_classes, 2)
+
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestDatasets)
 unittest.TextTestRunner(verbosity=2).run(suite)

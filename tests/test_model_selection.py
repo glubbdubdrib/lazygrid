@@ -1,7 +1,7 @@
 import unittest
 
 
-class TestCrossValidation(unittest.TestCase):
+class TestModelSelection(unittest.TestCase):
 
     def test_cross_validation_sklearn_model(self):
 
@@ -13,23 +13,19 @@ class TestCrossValidation(unittest.TestCase):
 
         classifier = RandomForestClassifier(random_state=42)
 
-        db_name = "database-test"
-        dataset_id = 1
-        dataset_name = "make-classification"
-
-        model = lg.SklearnWrapper(classifier, db_name=db_name, dataset_id=dataset_id, dataset_name=dataset_name)
+        model = lg.SklearnWrapper(classifier)
         score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x, y=y)
 
         conf_mat = lg.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
-                                                y_pred_list, y_true_list)
+                                                y_pred_list, y_true_list, class_names={0: "N", 1: "P"})
 
         # check models' type
         for fitted_model in fitted_models:
             self.assertTrue(isinstance(fitted_model, lg.SklearnWrapper))
 
         # check confusion matrix
-        self.assertTrue(conf_mat.matrix == {0: {0: 48, 1: 2},
-                                            1: {0: 5, 1: 45}})
+        self.assertTrue(conf_mat.matrix == {"N": {"N": 48, "P": 2},
+                                            "P": {"N": 5, "P": 45}})
 
     def test_cross_validation_sklearn_pipeline(self):
 
@@ -155,7 +151,34 @@ class TestCrossValidation(unittest.TestCase):
 
         # check confusion matrix
         self.assertTrue(conf_mat.matrix == {0: {0: 54, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 1: {0: 0, 1: 37, 2: 0, 3: 2, 4: 0, 5: 0, 6: 0, 7: 0, 8: 14, 9: 4}, 2: {0: 1, 1: 0, 2: 53, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 3: {0: 0, 1: 0, 2: 0, 3: 55, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2, 9: 0}, 4: {0: 0, 1: 0, 2: 0, 3: 0, 4: 57, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 5: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 54, 6: 0, 7: 0, 8: 0, 9: 3}, 6: {0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 0, 6: 55, 7: 0, 8: 1, 9: 0}, 7: {0: 1, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 51, 8: 0, 9: 2}, 8: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0, 7: 0, 8: 52, 9: 1}, 9: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 54}})
+        
+    def test_compare_models(self):
+
+        from sklearn.linear_model import LogisticRegression, RidgeClassifier
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.datasets import make_classification
+        import pandas as pd
+        import lazygrid as lg
+
+        dataset_id = 1
+        dataset_name = "make-classification"
+        db_name = "lazygrid-test"
+
+        x, y = make_classification(random_state=42)
+
+        lg_model_1 = lg.SklearnWrapper(LogisticRegression(), dataset_id=dataset_id,
+                                       dataset_name=dataset_name, db_name=db_name)
+        lg_model_2 = lg.SklearnWrapper(RandomForestClassifier(), dataset_id=dataset_id,
+                                       dataset_name=dataset_name, db_name=db_name)
+        lg_model_3 = lg.SklearnWrapper(RidgeClassifier(), dataset_id=dataset_id,
+                                       dataset_name=dataset_name, db_name=db_name)
+
+        models = [lg_model_1, lg_model_2, lg_model_3]
+        results = lg.compare_models(models=models, x_train=x, y_train=y)
+
+        self.assertTrue(isinstance(results, pd.DataFrame))
+        self.assertEqual(len(results), 3)
 
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCrossValidation)
+suite = unittest.TestLoader().loadTestsFromTestCase(TestModelSelection)
 unittest.TextTestRunner(verbosity=2).run(suite)
