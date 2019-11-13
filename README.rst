@@ -97,7 +97,7 @@ Table Of Contents
 -  `Running tests <#running-tests>`__
 -  `Contributing <#contributing>`__
 -  `Authors <#authors>`__
--  `License <#license>`__
+-  `Licence <#licence>`__
 
 Getting Started
 ---------------
