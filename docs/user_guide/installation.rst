@@ -1,7 +1,7 @@
 Installation
 ============
 
-You can install LazyGrid and with all its dependencies from
+You can install LazyGrid along with all its dependencies from
 `PyPI <https://pypi.org/project/lazygrid/>`__:
 
 .. code:: bash
