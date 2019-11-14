@@ -3,6 +3,7 @@ LazyGrid
 
 |Build|
 |Coverage|
+|Docs|
 
 |PyPI download total|
 |PyPI license|
@@ -29,6 +30,10 @@ LazyGrid
 .. |Coverage| image:: https://img.shields.io/codecov/c/gh/glubbdubdrib/lazygrid?label=Test%20Coverage&style=for-the-badge
     :alt: Codecov
     :target: https://codecov.io/gh/glubbdubdrib/lazygrid
+
+.. |Docs| image:: https://img.shields.io/readthedocs/lazygrid/latest?style=for-the-badge
+    :alt: Read the Docs (version)
+    :target: https://lazygrid.readthedocs.io/en/latest/
 
 .. |Repo size| image:: https://img.shields.io/github/repo-size/glubbdubdrib/lazygrid?style=for-the-badge
     :alt: GitHub repo size
