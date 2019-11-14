@@ -48,6 +48,12 @@ You can install LazyGrid along with all its dependencies from
 
     $ pip install -r requirements.txt lazygrid
 
+Source
+------
+
+The source code and minimal working examples can be found on
+`GitHub <https://github.com/glubbdubdrib/lazygrid>`__.
+
 
 .. toctree::
     :caption: User Guide

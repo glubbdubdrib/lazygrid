@@ -83,11 +83,16 @@ Before fitting a model or a pipeline step, LazyGrid checks inside an internal
 SQLite database if the model has already been fitted. If the model is found,
 it won't be fitted again.
 
+Documentation for the
+`latest stable version <https://lazygrid.readthedocs.io/en/latest/>`__
+is available on ReadTheDocs.
+
 
 Table Of Contents
 ^^^^^^^^^^^^^^^^^
 
 -  `Getting Started <#getting-started>`__
+-  `Documentation <#documentation>`__
 -  `How to use <#how-to-use>`__
 
    -  `Pipeline generation <#pipeline-generation>`__
@@ -127,6 +132,14 @@ compatible with `scikit-learn
 0.21 <https://scikit-learn.org/stable/index.html>`__, `tensorflow
 1.14 <https://www.tensorflow.org/>`__ and `Keras
 2.2.4 <https://keras.io/>`__.
+
+
+Documentation
+-------------
+
+Documentation for the
+`latest stable version <https://lazygrid.readthedocs.io/en/latest/>`__
+is available on ReadTheDocs.
 
 How to use
 ----------
