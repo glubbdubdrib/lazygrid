@@ -176,6 +176,8 @@ class TestModelSelection(unittest.TestCase):
         models = [lg_model_1, lg_model_2, lg_model_3]
         results = lg.compare_models(models=models, x_train=x, y_train=y)
 
+        results.to_html('results.html')
+
         self.assertTrue(isinstance(results, pd.DataFrame))
         self.assertEqual(len(results), 3)
 
