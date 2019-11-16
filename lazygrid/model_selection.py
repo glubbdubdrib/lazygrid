@@ -40,7 +40,8 @@ def cross_validation(model: Wrapper,
                      x: np.ndarray, y: np.ndarray,
                      x_val: np.ndarray = None, y_val: np.ndarray = None,
                      random_data: bool = True, random_model: bool = True,
-                     seed: int = 42, n_splits: int = 10, scoring: Union[Callable, str] = None,
+                     seed: int = 42, n_splits: int = 10, score_fun: Callable = None,
+                     generic_score: Callable = None,
                      logger: Logger = None) -> (dict, list, List[np.ndarray], List[np.ndarray]):
     """
     Apply cross-validation on the given model.
@@ -83,11 +84,9 @@ def cross_validation(model: Wrapper,
     :param random_model: if True it enables model randomization (if applicable)
     :param seed: seed used to make results reproducible
     :param n_splits: number of cross-validation iterations
-    :param scoring: scoring function used to evaluate the model performance (Callable, f1 or accuracy)
+    :param score_fun: sklearn-like scoring function used to evaluate the model performance
+    :param generic_score: generic score function
     :param logger: object used to save progress
-    :param plot_results: if True plots will be saved
-    :param output_dir: directory where output results will be saved
-    :param class_names: label names
     :return: cross-validation scores, fitted models, list of predicted labels and true labels
     """
 
@@ -107,15 +106,7 @@ def cross_validation(model: Wrapper,
     fitted_models = []
     y_pred_list = []
     y_list = []
-    score = {"train_blind": [], "test_blind": [], "train_cv": [], "val_cv": []}
-    if isinstance(scoring, Callable):
-        score_fun = scoring
-    elif scoring == "accuracy":
-        score_fun = accuracy_score
-    elif scoring == "f1":
-        score_fun = functools.partial(f1_score, average="weighted")
-    else:
-        score_fun = None
+    score = {}
 
     # prepare data for cross-validation
     if random_data:
@@ -150,35 +141,46 @@ def cross_validation(model: Wrapper,
         # fit learner
         learner.fit(x_train, y_train)
 
-        if score_fun:
-            # predict
-            y_train_pred = learner.predict(x_train)
-            y_val_pred = learner.predict(x_val)
+        if generic_score:
 
-            # compute score
-            score_train = score_fun(y_train, y_train_pred)
-            score_val = score_fun(y_val, y_val_pred)
-
-            y_pred_list.append(y_val_pred)
-            y_list.append(y_val)
+            score[split_index] = generic_score(**locals())
 
         else:
-            # compute score directly
-            score_train = learner.score(x_train, y_train)
-            score_val = learner.score(x_val, y_val)
 
-            y_pred_list.append(learner.predict(x_val))
-            y_list.append(y_val)
+            if not score:
+                score = {"train_cv": [], "val_cv": []}
 
-        # save results
-        score["train_cv"].append(score_train)
-        score["val_cv"].append(score_val)
+            if score_fun:
+
+                # predict
+                y_train_pred = learner.predict(x_train)
+                y_val_pred = learner.predict(x_val)
+
+                # compute score
+                score_train = score_fun(y_train, y_train_pred)
+                score_val = score_fun(y_val, y_val_pred)
+                score = [score_train, score_val]
+
+                y_pred_list.append(y_val_pred)
+                y_list.append(y_val)
+
+            else:
+                # compute score directly
+                score_train = learner.score(x_train, y_train)
+                score_val = learner.score(x_val, y_val)
+
+                y_pred_list.append(learner.predict(x_val))
+                y_list.append(y_val)
+
+            # save results
+            score["train_cv"].append(score_train)
+            score["val_cv"].append(score_val)
+
+            if logger: logger.info("\t%s: train %.4f - validation %.4f" % (str(score_fun), score_train, score_val))
 
         # save trained model
         learner.save_model()
         fitted_models.append(learner)
-
-        if logger: logger.info("\t%s: train %.4f - validation %.4f" % (str(scoring), score_train, score_val))
 
         split_index += 1
 
@@ -338,7 +340,7 @@ def compare_models(models: List[Wrapper],
                    x_train: np.ndarray, y_train: np.ndarray,
                    x_val: np.ndarray = None, y_val: np.ndarray = None,
                    random_data: bool = True, random_model: bool = True,
-                   seed: int = 42, n_splits: int = 10, scoring: [Callable, str] = "f1",
+                   seed: int = 42, n_splits: int = 10, score_fun: Callable = None,
                    test: Callable = mannwhitneyu, alpha: int = 0.05, cl: float = 0.05,
                    experiment_name: str = "model_comparison", output_dir: str = "./output",
                    verbose: bool = False, logger: Logger = None,
@@ -386,7 +388,7 @@ def compare_models(models: List[Wrapper],
     :param random_model: if True it enables model randomization (if applicable)
     :param seed: seed used to make results reproducible
     :param n_splits: number of cross-validation iterations
-    :param scoring: scoring function used to evaluate the model performance (Callable, f1 or accuracy)
+    :param score_fun: sklearn-like scoring function used to evaluate the model performance
     :param test: statistical test
     :param alpha: significance level
     :param cl: confidence level
@@ -414,7 +416,7 @@ def compare_models(models: List[Wrapper],
                                                                           random_data=random_data,
                                                                           random_model=random_model,
                                                                           seed=seed, n_splits=n_splits,
-                                                                          scoring=scoring, logger=logger)
+                                                                          score_fun=score_fun, logger=logger)
 
         conf_mat = generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
                                              y_pred_list, y_true_list, class_names,
@@ -434,7 +436,7 @@ def compare_models(models: List[Wrapper],
 
     # Compute results' summary
     results = _compute_result_summary(models, models_id_list, random_data, random_model,
-                                      seed, n_splits, scoring, test, alpha, cl,
+                                      seed, n_splits, score_fun, test, alpha, cl,
                                       train_cv, val_cv, pvalues, best_solutions)
 
     # Save results to csv

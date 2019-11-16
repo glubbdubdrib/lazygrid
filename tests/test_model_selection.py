@@ -140,7 +140,7 @@ class TestModelSelection(unittest.TestCase):
         score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x_train, y=y_train,
                                                                              x_val=x_val, y_val=y_val,
                                                                              random_data=False, n_splits=3,
-                                                                             scoring=score_fun)
+                                                                             score_fun=score_fun)
 
         conf_mat = lg.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
                                                 y_pred_list, y_true_list, encoding="one-hot")
