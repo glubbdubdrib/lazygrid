@@ -128,24 +128,24 @@ def cross_validation(model: Wrapper,
             x_train = x
             y_train = y
 
-        # load learner
-        try:
-            learner = copy.deepcopy(model)
-        except TypeError:
-            learner = model
-        learner.set_random_seed(seed, split_index, random_model)
-
-        # check if model has already been computed
-        learner.load_model()
-
-        # fit learner
-        learner.fit(x_train, y_train)
-
         if generic_score:
 
             score[split_index] = generic_score(**locals())
 
         else:
+
+            # load learner
+            try:
+                learner = copy.deepcopy(model)
+            except TypeError:
+                learner = model
+            learner.set_random_seed(seed, split_index, random_model)
+
+            # check if model has already been computed
+            learner.load_model()
+
+            # fit learner
+            learner.fit(x_train, y_train)
 
             if not score:
                 score = {"train_cv": [], "val_cv": []}
@@ -178,9 +178,9 @@ def cross_validation(model: Wrapper,
 
             if logger: logger.info("\t%s: train %.4f - validation %.4f" % (str(score_fun), score_train, score_val))
 
-        # save trained model
-        learner.save_model()
-        fitted_models.append(learner)
+            # save trained model
+            learner.save_model()
+            fitted_models.append(learner)
 
         split_index += 1
 
