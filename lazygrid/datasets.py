@@ -87,7 +87,6 @@ def load_openml_dataset(data_id: int = None, dataset_name: str = None, logger: L
     :return: data matrix, data labels, and number of classes
     """
 
-    assert isinstance(data_id, np.int32) or isinstance(data_id, int) or data_id is None
     assert (data_id is not None) or (dataset_name is not None)
     assert isinstance(dataset_name, str) or dataset_name is None
 
