@@ -23,17 +23,15 @@ import os
 import functools
 from typing import Union, Callable, List
 from logging import Logger
-
 import pycm
 from scipy.stats import mannwhitneyu
 from statsmodels.stats.proportion import proportion_confint
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import accuracy_score, f1_score
 from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
-from .statistics import find_best_solution, confidence_interval_mean_t
-from .wrapper import Wrapper
-from .plotter import generate_confusion_matrix
+from statistics import find_best_solution, confidence_interval_mean_t
+from wrapper import Wrapper
+from plotter import generate_confusion_matrix
 
 
 def cross_validation(model: Wrapper,
@@ -91,6 +89,7 @@ def cross_validation(model: Wrapper,
     """
 
     # Check input parameters
+    assert score_fun or generic_score or hasattr(model, "score")
     assert isinstance(x, np.ndarray) and isinstance(y, np.ndarray)
     assert isinstance(random_data, bool)
     assert isinstance(random_model, bool)
@@ -159,7 +158,6 @@ def cross_validation(model: Wrapper,
                 # compute score
                 score_train = score_fun(y_train, y_train_pred)
                 score_val = score_fun(y_val, y_val_pred)
-                score = [score_train, score_val]
 
                 y_pred_list.append(y_val_pred)
                 y_list.append(y_val)
@@ -341,6 +339,7 @@ def compare_models(models: List[Wrapper],
                    x_val: np.ndarray = None, y_val: np.ndarray = None,
                    random_data: bool = True, random_model: bool = True,
                    seed: int = 42, n_splits: int = 10, score_fun: Callable = None,
+                   generic_score: Callable = None,
                    test: Callable = mannwhitneyu, alpha: int = 0.05, cl: float = 0.05,
                    experiment_name: str = "model_comparison", output_dir: str = "./output",
                    verbose: bool = False, logger: Logger = None,
@@ -389,6 +388,7 @@ def compare_models(models: List[Wrapper],
     :param seed: seed used to make results reproducible
     :param n_splits: number of cross-validation iterations
     :param score_fun: sklearn-like scoring function used to evaluate the model performance
+    :param generic_score: generic score function
     :param test: statistical test
     :param alpha: significance level
     :param cl: confidence level
@@ -416,7 +416,9 @@ def compare_models(models: List[Wrapper],
                                                                           random_data=random_data,
                                                                           random_model=random_model,
                                                                           seed=seed, n_splits=n_splits,
-                                                                          score_fun=score_fun, logger=logger)
+                                                                          score_fun=score_fun,
+                                                                          generic_score=generic_score,
+                                                                          logger=logger)
 
         conf_mat = generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
                                              y_pred_list, y_true_list, class_names,
