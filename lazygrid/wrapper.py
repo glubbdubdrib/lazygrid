@@ -9,8 +9,8 @@ import sklearn
 from sklearn.ensemble import RandomForestClassifier
 from abc import ABC
 import tensorflow as tf
-from database import drop_db, save_to_db, load_from_db
-from neural_models import reset_weights
+from .database import drop_db, save_to_db, load_from_db
+from .neural_models import reset_weights
 
 
 class Wrapper(ABC):

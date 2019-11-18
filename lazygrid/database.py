@@ -19,7 +19,7 @@ import os
 import sqlite3
 from typing import Optional, Any
 import numpy as np
-from config import create_model_stmt, insert_model_stmt, query_model_stmt
+from .config import create_model_stmt, insert_model_stmt, query_model_stmt
 
 
 def save_to_db(db_name: str, entry: tuple, query: tuple,

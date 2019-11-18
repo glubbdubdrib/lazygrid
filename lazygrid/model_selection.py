@@ -29,9 +29,9 @@ from statsmodels.stats.proportion import proportion_confint
 from sklearn.model_selection import StratifiedKFold
 from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
-from statistics import find_best_solution, confidence_interval_mean_t
-from wrapper import Wrapper
-from plotter import generate_confusion_matrix
+from .statistics import find_best_solution, confidence_interval_mean_t
+from .wrapper import Wrapper
+from .plotter import generate_confusion_matrix
 
 
 def cross_validation(model: Wrapper,
