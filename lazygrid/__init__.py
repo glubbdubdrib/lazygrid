@@ -20,7 +20,7 @@ __version__ = "2.1.0"
 
 from .file_logger import initialize_logging, close_logging
 from .datasets import fetch_datasets, load_openml_dataset, load_npy_dataset
-from .database import save_model_to_db, load_model_from_db, drop_db
+from .database import save_to_db, load_from_db, drop_db, load_all_from_db
 from .statistics import confidence_interval_mean_t, find_best_solution
 from .neural_models import reset_weights, keras_classifier
 from .grid import generate_grid, generate_grid_search

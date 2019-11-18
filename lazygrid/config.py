@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-create_table_stmt = '''CREATE TABLE IF NOT EXISTS MODEL(
+create_model_stmt = '''CREATE TABLE IF NOT EXISTS MODEL(
         id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
         type TEXT NOT NULL,
@@ -45,8 +45,8 @@ insert_model_stmt = '''INSERT INTO MODEL(
         dataset_id, dataset_name, cv_split, previous_step_id, serialized_model)
         VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
 
-query_stmt = '''SELECT id, type, class, serialized_model, fit_parameters, is_standalone FROM MODEL
-                WHERE name=? AND type=? AND parameters=? AND 
-                      fit_parameters=? AND predict_parameters=? AND score_parameters=? AND
-                      version=? AND models_id=? AND dataset_id=? AND 
-                      cv_split=? AND previous_step_id=?'''
+query_model_stmt = '''SELECT id, type, class, serialized_model, fit_parameters, is_standalone FROM MODEL
+                      WHERE name=? AND type=? AND parameters=? AND 
+                            fit_parameters=? AND predict_parameters=? AND score_parameters=? AND
+                            version=? AND models_id=? AND dataset_id=? AND 
+                            cv_split=? AND previous_step_id=?'''

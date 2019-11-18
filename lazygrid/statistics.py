@@ -21,8 +21,6 @@ from scipy import stats
 from scipy.stats import mannwhitneyu
 from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
-from sklearn.metrics import confusion_matrix
-import pandas as pd
 
 
 def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> List[float]:

@@ -25,7 +25,6 @@ import openml
 import pandas as pd
 import os
 from logging import Logger
-
 from sklearn.impute import SimpleImputer
 from sklearn.datasets import fetch_openml
 from sklearn.preprocessing import LabelEncoder
