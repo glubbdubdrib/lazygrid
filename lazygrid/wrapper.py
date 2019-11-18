@@ -9,9 +9,8 @@ import sklearn
 from sklearn.ensemble import RandomForestClassifier
 from abc import ABC
 import tensorflow as tf
-from .database import drop_db
-from .neural_models import reset_weights
-from .database import save_model_to_db, load_model_from_db
+from database import drop_db, save_to_db, load_from_db
+from neural_models import reset_weights
 
 
 class Wrapper(ABC):
@@ -126,7 +125,7 @@ class Wrapper(ABC):
         """
         self.entry = self.get_entry()
         self.query = self.get_query()
-        return save_model_to_db(self)
+        return save_to_db(self.db_name, self.entry, self.query)
 
     def from_database(self, **kwargs):
         """
@@ -135,7 +134,7 @@ class Wrapper(ABC):
         :return: query result
         """
         self.query = self.get_query()
-        return load_model_from_db(self)
+        return load_from_db(self.db_name, self.query)
 
     def load_model(self, **kwargs) -> Any:
         """
