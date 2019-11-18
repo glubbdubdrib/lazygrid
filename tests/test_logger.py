@@ -7,9 +7,9 @@ class TestLogger(unittest.TestCase):
 
         import lazygrid as lg
 
-        logger = lg.initialize_logging()
+        logger = lg.file_logger.initialize_logging()
         logger.info("Log something")
-        lg.close_logging(logger)
+        lg.file_logger.close_logging(logger)
 
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestLogger)

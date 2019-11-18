@@ -13,15 +13,15 @@ class TestModelSelection(unittest.TestCase):
 
         classifier = RandomForestClassifier(random_state=42)
 
-        model = lg.SklearnWrapper(classifier)
-        score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x, y=y)
+        model = lg.wrapper.SklearnWrapper(classifier)
+        score, fitted_models, y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
 
-        conf_mat = lg.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
-                                                y_pred_list, y_true_list, class_names={0: "N", 1: "P"})
+        conf_mat = lg.plotter.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
+                                                        y_pred_list, y_true_list, class_names={0: "N", 1: "P"})
 
         # check models' type
         for fitted_model in fitted_models:
-            self.assertTrue(isinstance(fitted_model, lg.SklearnWrapper))
+            self.assertTrue(isinstance(fitted_model, lg.wrapper.SklearnWrapper))
 
         # check confusion matrix
         self.assertTrue(conf_mat.matrix == {"N": {"N": 48, "P": 2},
@@ -49,15 +49,15 @@ class TestModelSelection(unittest.TestCase):
         dataset_id = 1
         dataset_name = "make-classification"
 
-        model = lg.PipelineWrapper(pipeline, db_name=db_name, dataset_id=dataset_id, dataset_name=dataset_name)
-        score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x, y=y)
+        model = lg.wrapper.PipelineWrapper(pipeline, db_name=db_name, dataset_id=dataset_id, dataset_name=dataset_name)
+        score, fitted_models, y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
 
-        conf_mat = lg.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
+        conf_mat = lg.plotter.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
                                                 y_pred_list, y_true_list)
 
         # check models' type
         for fitted_model in fitted_models:
-            self.assertTrue(isinstance(fitted_model, lg.PipelineWrapper))
+            self.assertTrue(isinstance(fitted_model, lg.wrapper.PipelineWrapper))
 
         # check confusion matrix
         self.assertTrue(conf_mat.matrix == {0: {0: 46, 1: 4},
@@ -135,19 +135,20 @@ class TestModelSelection(unittest.TestCase):
         dataset_name = "digits"
 
         # cross validation
-        model = lg.KerasWrapper(kmodel, fit_params=fit_params, db_name=db_name,
-                                dataset_id=dataset_id, dataset_name=dataset_name)
-        score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x_train, y=y_train,
-                                                                             x_val=x_val, y_val=y_val,
-                                                                             random_data=False, n_splits=3,
-                                                                             score_fun=score_fun)
+        model = lg.wrapper.KerasWrapper(kmodel, fit_params=fit_params, db_name=db_name,
+                                        dataset_id=dataset_id, dataset_name=dataset_name)
+        score, fitted_models, \
+            y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x_train, y=y_train,
+                                                                           x_val=x_val, y_val=y_val,
+                                                                           random_data=False, n_splits=3,
+                                                                           score_fun=score_fun)
 
-        conf_mat = lg.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
-                                                y_pred_list, y_true_list, encoding="one-hot")
+        conf_mat = lg.plotter.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
+                                                        y_pred_list, y_true_list, encoding="one-hot")
 
         # check models' type
         for fitted_model in fitted_models:
-            self.assertTrue(isinstance(fitted_model, lg.KerasWrapper))
+            self.assertTrue(isinstance(fitted_model, lg.wrapper.KerasWrapper))
 
         # check confusion matrix
         self.assertTrue(conf_mat.matrix == {0: {0: 54, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 1: {0: 0, 1: 37, 2: 0, 3: 2, 4: 0, 5: 0, 6: 0, 7: 0, 8: 14, 9: 4}, 2: {0: 1, 1: 0, 2: 53, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 3: {0: 0, 1: 0, 2: 0, 3: 55, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2, 9: 0}, 4: {0: 0, 1: 0, 2: 0, 3: 0, 4: 57, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 5: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 54, 6: 0, 7: 0, 8: 0, 9: 3}, 6: {0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 0, 6: 55, 7: 0, 8: 1, 9: 0}, 7: {0: 1, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 51, 8: 0, 9: 2}, 8: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0, 7: 0, 8: 52, 9: 1}, 9: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 54}})
@@ -166,15 +167,15 @@ class TestModelSelection(unittest.TestCase):
 
         x, y = make_classification(random_state=42)
 
-        lg_model_1 = lg.SklearnWrapper(LogisticRegression(), dataset_id=dataset_id,
+        lg_model_1 = lg.wrapper.SklearnWrapper(LogisticRegression(), dataset_id=dataset_id,
                                        dataset_name=dataset_name, db_name=db_name)
-        lg_model_2 = lg.SklearnWrapper(RandomForestClassifier(), dataset_id=dataset_id,
+        lg_model_2 = lg.wrapper.SklearnWrapper(RandomForestClassifier(), dataset_id=dataset_id,
                                        dataset_name=dataset_name, db_name=db_name)
-        lg_model_3 = lg.SklearnWrapper(RidgeClassifier(), dataset_id=dataset_id,
+        lg_model_3 = lg.wrapper.SklearnWrapper(RidgeClassifier(), dataset_id=dataset_id,
                                        dataset_name=dataset_name, db_name=db_name)
 
         models = [lg_model_1, lg_model_2, lg_model_3]
-        results = lg.compare_models(models=models, x_train=x, y_train=y)
+        results = lg.model_selection.compare_models(models=models, x_train=x, y_train=y)
 
         results.to_html('results.html')
 

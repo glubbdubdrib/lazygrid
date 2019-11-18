@@ -7,7 +7,7 @@ class TestDatasets(unittest.TestCase):
 
         import lazygrid as lg
 
-        datasets = lg.fetch_datasets(task="classification", min_classes=2, max_samples=1000, max_features=10)
+        datasets = lg.datasets.fetch_datasets(task="classification", min_classes=2, max_samples=1000, max_features=10)
 
         self.assertEqual(datasets.loc["iris"].version, 45)
         self.assertEqual(datasets.loc["iris"].did, 42098)
@@ -20,7 +20,7 @@ class TestDatasets(unittest.TestCase):
         import numpy as np
         import lazygrid as lg
 
-        x, y, n_classes = lg.load_openml_dataset(dataset_name="iris")
+        x, y, n_classes = lg.datasets.load_openml_dataset(dataset_name="iris")
 
         self.assertTrue(isinstance(x, np.ndarray))
         self.assertTrue(isinstance(y, np.ndarray))
@@ -40,7 +40,7 @@ class TestDatasets(unittest.TestCase):
         np.save(path_x, x)
         np.save(path_y, y)
 
-        x, y, n_classes = lg.load_npy_dataset(path_x, path_y)
+        x, y, n_classes = lg.datasets.load_npy_dataset(path_x, path_y)
 
         self.assertTrue(isinstance(x, np.ndarray))
         self.assertTrue(isinstance(y, np.ndarray))

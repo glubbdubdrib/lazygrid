@@ -18,7 +18,7 @@ class TestGrid(unittest.TestCase):
 
         elements = [preprocessors, feature_selectors, classifiers]
 
-        pipelines = lg.generate_grid(elements)
+        pipelines = lg.grid.generate_grid(elements)
 
         for pipeline in pipelines:
             self.assertTrue(isinstance(pipeline, Pipeline))
@@ -53,7 +53,7 @@ class TestGrid(unittest.TestCase):
         fit_params = {"epochs": [5, 10, 20], "batch_size": [10, 20]}
 
         # generate all possible models given the parameters' grid
-        models, fit_parameters = lg.generate_grid_search(kmodel, model_params, fit_params)
+        models, fit_parameters = lg.grid.generate_grid_search(kmodel, model_params, fit_params)
 
         # given the parameters, there are 12 possible combinations
         self.assertEqual(len(models), 12)

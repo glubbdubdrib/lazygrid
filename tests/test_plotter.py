@@ -12,7 +12,7 @@ class TestPlotter(unittest.TestCase):
         file_name = "box_plot_scores.png"
         title = "Model comparison"
 
-        lg.plot_boxplots(score_list, labels, file_name, title)
+        lg.plotter.plot_boxplots(score_list, labels, file_name, title)
 
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestPlotter)

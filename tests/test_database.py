@@ -13,7 +13,7 @@ class TestDatabase(unittest.TestCase):
         db_name = "lazygrid-test"
         db_path = os.path.join(db_dir, db_name)
 
-        lg.drop_db(db_name=db_name)
+        lg.database.drop_db(db_name=db_name)
 
         db = sqlite3.connect(db_path)
         cursor = db.cursor()

@@ -12,7 +12,7 @@ class TestStatistics(unittest.TestCase):
         x = np.random.normal(loc=0, scale=2, size=10)
         confidence_level = 0.05
 
-        l_bound, u_bound = lg.confidence_interval_mean_t(x, confidence_level)
+        l_bound, u_bound = lg.statistics.confidence_interval_mean_t(x, confidence_level)
 
         print(l_bound)
         print(u_bound)
@@ -40,7 +40,7 @@ class TestStatistics(unittest.TestCase):
         score3 = cross_val_score(estimator=model3, X=x, y=y, cv=10)
 
         scores = [score1, score2, score3]
-        best_idx, best_solutions_idx, pvalues = lg.find_best_solution(scores)
+        best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution(scores)
 
         self.assertEqual(model_names[best_idx], "LogisticRegression")
         self.assertEqual(best_solutions_idx, [0, 2])
