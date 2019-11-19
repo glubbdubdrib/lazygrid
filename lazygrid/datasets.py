@@ -198,7 +198,11 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
             if logger: logger.info(traceback.format_exc())
 
     data = pd.DataFrame(data).transpose()
-    data = data.sort_values(by=["n_samples", "n_features", "n_classes"]).astype('int64')
+    try:
+        data = data.sort_values(by=["n_samples", "n_features", "n_classes"]).astype('int64')
+    except KeyError:
+        if logger: logger.info(traceback.format_exc())
+        return None
 
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
