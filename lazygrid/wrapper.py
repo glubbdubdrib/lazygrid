@@ -25,6 +25,8 @@ class Wrapper(ABC):
         """
         Wrapper initialization.
 
+        Parameters
+        --------
         :param model: machine learning model
         :param dataset_id: data set identifier
         :param dataset_name: data set name
@@ -75,6 +77,9 @@ class Wrapper(ABC):
     def get_entry(self) -> tuple:
         """
         Define database entry for the model.
+
+        Parameters
+        --------
         :return: database entry
         """
 
@@ -99,7 +104,10 @@ class Wrapper(ABC):
 
     def get_query(self) -> tuple:
         """
-        Define database query for the model
+        Define database query for the model.
+
+        Parameters
+        --------
         :return: database query
         """
         query = (
@@ -120,6 +128,9 @@ class Wrapper(ABC):
     def to_database(self, **kwargs):
         """
         Send model into a database.
+
+        Parameters
+        --------
         :param kwargs: some parameters
         :return: query result
         """
@@ -130,6 +141,9 @@ class Wrapper(ABC):
     def from_database(self, **kwargs):
         """
         Fetch model from a database.
+
+        Parameters
+        --------
         :param kwargs: some parameters
         :return: query result
         """
@@ -139,6 +153,9 @@ class Wrapper(ABC):
     def load_model(self, **kwargs) -> Any:
         """
         Load model from database if possible.
+
+        Parameters
+        --------
         :param kwargs: some parameters
         :return: wrapped model
         """
@@ -154,6 +171,9 @@ class Wrapper(ABC):
     def save_model(self, **kwargs) -> None:
         """
         Save model into database.
+
+        Parameters
+        --------
         :param kwargs: some parameters
         :return: None
         """
@@ -167,6 +187,9 @@ class Wrapper(ABC):
     def set_random_seed(self, seed, split_index, random_model, **kwargs):
         """
         Set model random state if possible.
+
+        Parameters
+        --------
         :param seed: random seed
         :param split_index: cross-validation split identifier
         :param random_model: whether the model should have the same random state for each cross-validation split
@@ -178,6 +201,9 @@ class Wrapper(ABC):
     def parse_parameters(self, **kwargs) -> str:
         """
         Parse model parameters.
+
+        Parameters
+        --------
         :param kwargs: some parameters
         :return: parameters as a string
         """
@@ -186,6 +212,9 @@ class Wrapper(ABC):
     def fit(self, x, y, **kwargs) -> None:
         """
         Fit model with some samples.
+
+        Parameters
+        --------
         :param x: train data
         :param y: train labels
         :param kwargs: some parameters
@@ -198,6 +227,9 @@ class Wrapper(ABC):
     def predict(self, x, **kwargs) -> Any:
         """
         Predict labels for some input samples.
+
+        Parameters
+        --------
         :param x: input data
         :param kwargs: some parameters
         :return: predictions
@@ -207,6 +239,9 @@ class Wrapper(ABC):
     def score(self, x, y, **kwargs) -> Any:
         """
         Compute score for some input samples.
+
+        Parameters
+        --------
         :param x: input data
         :param y: input labels
         :param kwargs: some parameters
@@ -226,6 +261,8 @@ class SklearnWrapper(Wrapper):
         """
         Wrapper initialization.
 
+        Parameters
+        --------
         :param model: machine learning model
         :param dataset_id: data set identifier
         :param dataset_name: data set name
@@ -246,6 +283,9 @@ class SklearnWrapper(Wrapper):
     def set_random_seed(self, seed, split_index, random_model, **kwargs):
         """
         Set model random state if possible.
+
+        Parameters
+        --------
         :param seed: random seed
         :param split_index: cross-validation split identifier
         :param random_model: whether the model should have the same random state for each cross-validation split
@@ -266,6 +306,9 @@ class SklearnWrapper(Wrapper):
     def parse_parameters(self) -> str:
         """
         Parse sklearn model parameters.
+
+        Parameters
+        --------
         :return: model parameters
         """
         return parse_sklearn_model(self.model)
@@ -282,6 +325,8 @@ class PipelineWrapper(Wrapper):
         """
         Wrapper initialization.
 
+        Parameters
+        --------
         :param model: machine learning model
         :param dataset_id: data set identifier
         :param dataset_name: data set name
@@ -313,6 +358,9 @@ class PipelineWrapper(Wrapper):
     def save_model(self) -> None:
         """
         Save model into database.
+
+        Parameters
+        --------
         :return: None
         """
         self.models_id = []
@@ -334,6 +382,9 @@ class PipelineWrapper(Wrapper):
     def load_model(self) -> Any:
         """
         Load model from database.
+
+        Parameters
+        --------
         :return: None
         """
         pipeline = []
@@ -370,6 +421,9 @@ class PipelineWrapper(Wrapper):
     def set_random_seed(self, seed, split_index, random_model, **kwargs):
         """
         Set model random state if possible.
+
+        Parameters
+        --------
         :param seed: random seed
         :param split_index: cross-validation split identifier
         :param random_model: whether the model should have the same random state for each cross-validation split
@@ -391,6 +445,9 @@ class PipelineWrapper(Wrapper):
     def fit(self, x_train, y_train, **kwargs):
         """
         Fit model with some samples.
+
+        Parameters
+        --------
         :param x: train data
         :param y: train labels
         :param kwargs: some parameters
@@ -423,6 +480,8 @@ class KerasWrapper(Wrapper):
         """
         Wrapper initialization.
 
+        Parameters
+        --------
         :param model: machine learning model
         :param dataset_id: data set identifier
         :param dataset_name: data set name
@@ -442,6 +501,9 @@ class KerasWrapper(Wrapper):
     def load_model(self, **kwargs) -> Any:
         """
         Load model from database.
+
+        Parameters
+        --------
         :return: None
         """
         result = self.from_database()
@@ -457,6 +519,9 @@ class KerasWrapper(Wrapper):
     def save_model(self, **kwargs) -> None:
         """
         Save model into database.
+
+        Parameters
+        --------
         :return: None
         """
         if not self.serialized_model:
@@ -469,6 +534,9 @@ class KerasWrapper(Wrapper):
     def set_random_seed(self, seed: int, split_index, random_model, **kwargs):
         """
         Set model random state if possible.
+
+        Parameters
+        --------
         :param seed: random seed
         :param split_index: cross-validation split identifier
         :param random_model: whether the model should have the same random state for each cross-validation split
@@ -487,6 +555,9 @@ class KerasWrapper(Wrapper):
     def parse_parameters(self) -> str:
         """
         Parse model parameters.
+
+        Parameters
+        --------
         :return: model parameters
         """
         return parse_neural_model(self.model)
@@ -494,6 +565,9 @@ class KerasWrapper(Wrapper):
     def fit(self, x, y, **kwargs):
         """
         Fit model with some samples.
+
+        Parameters
+        --------
         :param x: train data
         :param y: train labels
         :param kwargs: some parameters
@@ -507,6 +581,9 @@ class KerasWrapper(Wrapper):
     def predict(self, x, **kwargs) -> Any:
         """
         Predict labels for some input samples.
+
+        Parameters
+        --------
         :param x: input data
         :param kwargs: some parameters
         :return: predictions
@@ -517,6 +594,9 @@ class KerasWrapper(Wrapper):
     def score(self, x, y, **kwargs) -> Any:
         """
         Compute score for some input samples.
+
+        Parameters
+        --------
         :param x: input data
         :param y: input labels
         :param kwargs: some parameters
@@ -530,6 +610,8 @@ def parse_sklearn_model(model):
     """
     Parse sklearn model parameters.
 
+    Parameters
+    --------
     :param model: sklearn model
     :return: None
     """
@@ -553,6 +635,8 @@ def parse_neural_model(model):
     """
     Parse keras/tensorflow model parameters.
 
+    Parameters
+    --------
     :param model: neural network model
     :return: None
     """
@@ -608,6 +692,9 @@ def parse_neural_model(model):
 def corner_cases(model: Any) -> Any:
     """
     Check parameter synonyms.
+
+    Parameters
+    --------
     :param model: sklearn model
     :return: model
     """
@@ -620,6 +707,9 @@ def corner_cases(model: Any) -> Any:
 def dict_to_json(dictionary: Union[dict, str]) -> str:
     """
     Sort dictionary by key and transform it into a string.
+
+    Parameters
+    --------
     :param dictionary: python dictionary
     :return: sorted dictionary as string
     """
@@ -638,6 +728,9 @@ def dict_to_json(dictionary: Union[dict, str]) -> str:
 def load_neural_model(model_bytes) -> Any:
     """
     Load keras model from binaries.
+
+    Parameters
+    --------
     :param model_bytes: serialized keras model
     :return: keras model
     """
@@ -650,6 +743,9 @@ def load_neural_model(model_bytes) -> Any:
 def save_neural_model(model) -> Any:
     """
     Serialize keras model.
+
+    Parameters
+    --------
     :param model: keras model
     :return: serialized keras model
     """
