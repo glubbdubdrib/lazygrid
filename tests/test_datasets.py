@@ -21,6 +21,13 @@ class TestDatasets(unittest.TestCase):
         datasets = lg.datasets.fetch_datasets(task="regression", max_samples=200, max_features=10, update_data=True)
         datasets = lg.datasets.fetch_datasets(task="random_task", max_samples=200, max_features=10, update_data=True)
 
+    def test_fetch_all_datasets(self):
+
+        import lazygrid as lg
+
+        datasets = lg.datasets.fetch_datasets(task="classification", update_data=True)
+        self.assertEqual(len(datasets), 716)
+
     def test_load_openml_data(self):
 
         import numpy as np
@@ -42,8 +49,10 @@ class TestDatasets(unittest.TestCase):
         import os
 
         path_x, path_y = "x.npy", "y.npy"
-        os.remove(path_x)
-        os.remove(path_y)
+        if os.path.isfile(path_x):
+            os.remove(path_x)
+        if os.path.isfile(path_y):
+            os.remove(path_y)
 
         x, y, n_classes = lg.datasets.load_npy_dataset(path_x, path_y)
 

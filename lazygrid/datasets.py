@@ -184,7 +184,7 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
                     if db['version'] < data[db['name']]['version']:
                         continue
 
-                load_openml_dataset(db['did'])
+                # load_openml_dataset(db['did'])
 
                 data[db['name']] = {}
                 data[db['name']]['version'] = db['version']
