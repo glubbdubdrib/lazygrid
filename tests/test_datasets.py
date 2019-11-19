@@ -39,13 +39,19 @@ class TestDatasets(unittest.TestCase):
         from sklearn.datasets import make_classification
         import numpy as np
         import lazygrid as lg
-
-        x, y = make_classification(random_state=42)
+        import os
 
         path_x, path_y = "x.npy", "y.npy"
+        os.remove(path_x)
+        os.remove(path_y)
 
         x, y, n_classes = lg.datasets.load_npy_dataset(path_x, path_y)
 
+        self.assertTrue(x is None)
+        self.assertTrue(y is None)
+        self.assertTrue(n_classes is None)
+
+        x, y = make_classification(random_state=42)
         np.save(path_x, x)
         np.save(path_y, y)
 

@@ -64,7 +64,7 @@ def load_npy_dataset(path_x: str, path_y: str, logger: Logger = None) -> (np.nda
 
     except FileNotFoundError:
         if logger: logger.info(traceback.format_exc())
-        return None
+        return None, None, None
 
     return x, y, n_classes
 
