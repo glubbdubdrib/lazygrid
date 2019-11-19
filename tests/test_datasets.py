@@ -7,10 +7,7 @@ class TestDatasets(unittest.TestCase):
 
         import lazygrid as lg
 
-        logger = lg.logger.initialize_logging()
-
-        datasets = lg.datasets.fetch_datasets(task="regression", max_samples=200, max_features=10,
-                                              update_data=True, logger=logger)
+        datasets = lg.datasets.fetch_datasets(task="regression", max_samples=200, max_features=10, update_data=True)
 
         datasets = lg.datasets.fetch_datasets(task="classification", min_classes=2,
                                               max_samples=200, max_features=10, update_data=True)
@@ -23,8 +20,6 @@ class TestDatasets(unittest.TestCase):
 
         datasets = lg.datasets.fetch_datasets(task="regression", max_samples=200, max_features=10, update_data=True)
         datasets = lg.datasets.fetch_datasets(task="random_task", max_samples=200, max_features=10, update_data=True)
-
-        lg.logger.close_logging(logger)
 
     def test_load_openml_data(self):
 
