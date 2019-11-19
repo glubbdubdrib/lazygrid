@@ -41,7 +41,7 @@ class TestGrid(unittest.TestCase):
             kmodel.add(Dense(n_classes, activation='softmax'))
 
             kmodel.compile(loss=keras.losses.categorical_crossentropy,
-                           optimizer = optimizer, metrics = ['accuracy'])
+                           optimizer=optimizer, metrics=['accuracy'])
 
             return kmodel
 

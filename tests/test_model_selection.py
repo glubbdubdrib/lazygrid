@@ -56,7 +56,6 @@ class TestModelSelection(unittest.TestCase):
         self.assertTrue(score == {0: 1.6364, 1: 1.6364, 2: 1.7143, 3: 1.7143, 4: 1.7143,
                                   5: 1.7143, 6: 1.7143, 7: 1.6667, 8: 1.6667, 9: 1.6667})
 
-
     def test_cross_validation_sklearn_pipeline(self):
 
         from sklearn.ensemble import RandomForestClassifier
