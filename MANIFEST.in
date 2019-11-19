@@ -1,4 +1,4 @@
 include lazygrid/*.md
 include LICENSE.txt
 include requirements.txt
-include *.md
+include *.rst
