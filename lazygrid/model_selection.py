@@ -127,11 +127,15 @@ def cross_validation(model: Wrapper,
             x_train = x
             y_train = y
 
+        # use generic score function for any kind of purpose
         if generic_score:
 
             score[split_index] = generic_score(**locals())
 
         else:
+
+            if not score:
+                score = {"train_cv": [], "val_cv": []}
 
             # load learner
             try:
@@ -146,9 +150,7 @@ def cross_validation(model: Wrapper,
             # fit learner
             learner.fit(x_train, y_train)
 
-            if not score:
-                score = {"train_cv": [], "val_cv": []}
-
+            # use custom score function for machine learning models having "fit" and "predict" methods
             if score_fun:
 
                 # predict
@@ -162,6 +164,7 @@ def cross_validation(model: Wrapper,
                 y_pred_list.append(y_val_pred)
                 y_list.append(y_val)
 
+            # use default score function provided by the model
             else:
                 # compute score directly
                 score_train = learner.score(x_train, y_train)
