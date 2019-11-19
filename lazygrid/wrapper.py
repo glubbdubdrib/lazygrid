@@ -640,6 +640,14 @@ def parse_sklearn_model(model):
     """
     Parse sklearn model parameters.
 
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>> from sklearn.linear_model import LogisticRegression
+    >>>
+    >>> lg_model = lg.wrapper.SklearnWrapper(LogisticRegression())
+    >>> parameters = lg.wrapper.parse_sklearn_model(lg_model)
+
     Parameters
     --------
     :param model: sklearn model
