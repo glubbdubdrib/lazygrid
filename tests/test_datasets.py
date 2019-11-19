@@ -13,7 +13,7 @@ class TestDatasets(unittest.TestCase):
                                               update_data=True, logger=logger)
 
         datasets = lg.datasets.fetch_datasets(task="classification", min_classes=2,
-                                              max_samples=200, max_features=10, update_data=True, logger=logger)
+                                              max_samples=200, max_features=10, update_data=True)
 
         self.assertEqual(datasets.loc["iris"].version, 45)
         self.assertEqual(datasets.loc["iris"].did, 42098)
@@ -21,10 +21,8 @@ class TestDatasets(unittest.TestCase):
         self.assertEqual(datasets.loc["iris"].n_features, 4)
         self.assertEqual(datasets.loc["iris"].n_classes, 3)
 
-        datasets = lg.datasets.fetch_datasets(task="regression", max_samples=200, max_features=10,
-                                              update_data=True, logger=logger)
-        datasets = lg.datasets.fetch_datasets(task="random_task", max_samples=200, max_features=10,
-                                              update_data=True, logger=logger)
+        datasets = lg.datasets.fetch_datasets(task="regression", max_samples=200, max_features=10, update_data=True)
+        datasets = lg.datasets.fetch_datasets(task="random_task", max_samples=200, max_features=10, update_data=True)
 
         lg.logger.close_logging(logger)
 
