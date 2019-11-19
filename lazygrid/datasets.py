@@ -169,6 +169,8 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
     for key, db in openml.datasets.list_datasets().items():
 
         try:
+            if logger: logger.info("Loading data set: %s, ID: %d..." % (db['name'], db['did']))
+
             if db['NumberOfClasses'] > min_classes and _is_correct_task(task, db) and \
                     db['NumberOfInstances'] < max_samples and db['NumberOfFeatures'] < max_features and \
                     db['status'] == 'active':
@@ -187,7 +189,7 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
                 data[db['name']]['n_classes'] = db['NumberOfClasses']
 
         except (IndexError, ValueError, KeyError):
-            if logger: logger.info("Error fetching database: %s, ID: %d" % (db['name'], db['did']))
+            if logger: logger.info("Error loading data set: %s, ID: %d!" % (db['name'], db['did']))
             if logger: logger.info(traceback.format_exc())
 
     data = pd.DataFrame(data).transpose()
@@ -236,7 +238,7 @@ def fetch_datasets(output_dir: str = "./data", update_data: bool = False,
 
     # download (again) new data if necessary
     if not os.path.isdir(output_dir) or not file_list or update_data:
-        data = _load_datasets(output_dir, min_classes, task, max_samples, max_features)
+        data = _load_datasets(output_dir, min_classes, task, max_samples, max_features, logger)
 
         # delete previous data files
         file_list.sort()
