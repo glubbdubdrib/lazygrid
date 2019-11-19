@@ -6,16 +6,34 @@ from typing import Callable, Any, Union
 import json
 import keras
 import sklearn
+from keras import Model
 from sklearn.ensemble import RandomForestClassifier
 from abc import ABC
 import tensorflow as tf
 from .database import drop_db, save_to_db, load_from_db
 from .neural_models import reset_weights
+from .config import create_model_stmt, insert_model_stmt, query_model_stmt
 
 
 class Wrapper(ABC):
     """
     Abstract wrapper class for machine learning models.
+
+    Examples
+    --------
+    >>> from lazygrid.wrapper import Wrapper
+    >>>
+    >>>
+    >>> class CustomWrapper(Wrapper):
+    >>>
+    >>>     def __init__(self, **kwargs):
+    >>>         Wrapper.__init__(self, **kwargs)
+    >>>
+    >>>     def set_random_seed(self, seed, split_index, random_model):
+    >>>         pass
+    >>>
+    >>>     def parse_parameters(self) -> str:
+    >>>         pass
     """
 
     def __init__(self, model: Any, dataset_id=None, dataset_name=None, db_name=None,
@@ -131,12 +149,11 @@ class Wrapper(ABC):
 
         Parameters
         --------
-        :param kwargs: some parameters
         :return: query result
         """
         self.entry = self.get_entry()
         self.query = self.get_query()
-        return save_to_db(self.db_name, self.entry, self.query)
+        return save_to_db(self.db_name, self.entry, self.query, create_model_stmt, insert_model_stmt, query_model_stmt)
 
     def from_database(self, **kwargs):
         """
@@ -144,11 +161,10 @@ class Wrapper(ABC):
 
         Parameters
         --------
-        :param kwargs: some parameters
         :return: query result
         """
         self.query = self.get_query()
-        return load_from_db(self.db_name, self.query)
+        return load_from_db(self.db_name, self.query, create_model_stmt, query_model_stmt)
 
     def load_model(self, **kwargs) -> Any:
         """
@@ -156,7 +172,6 @@ class Wrapper(ABC):
 
         Parameters
         --------
-        :param kwargs: some parameters
         :return: wrapped model
         """
         result = self.from_database()
@@ -174,7 +189,6 @@ class Wrapper(ABC):
 
         Parameters
         --------
-        :param kwargs: some parameters
         :return: None
         """
         if not self.serialized_model:
@@ -184,16 +198,12 @@ class Wrapper(ABC):
             model_id, model_type, model_class, serialized_model, fit_parameters, is_standalone = result
             self.model_id = model_id
 
-    def set_random_seed(self, seed, split_index, random_model, **kwargs):
+    def set_random_seed(self, **kwargs):
         """
         Set model random state if possible.
 
         Parameters
         --------
-        :param seed: random seed
-        :param split_index: cross-validation split identifier
-        :param random_model: whether the model should have the same random state for each cross-validation split
-        :param kwargs: some parameters
         :return: None
         """
         raise NotImplementedError
@@ -204,7 +214,6 @@ class Wrapper(ABC):
 
         Parameters
         --------
-        :param kwargs: some parameters
         :return: parameters as a string
         """
         raise NotImplementedError
@@ -217,7 +226,6 @@ class Wrapper(ABC):
         --------
         :param x: train data
         :param y: train labels
-        :param kwargs: some parameters
         :return: None
         """
         if not self.is_fitted:
@@ -231,7 +239,6 @@ class Wrapper(ABC):
         Parameters
         --------
         :param x: input data
-        :param kwargs: some parameters
         :return: predictions
         """
         return self.model.predict(x)
@@ -244,7 +251,6 @@ class Wrapper(ABC):
         --------
         :param x: input data
         :param y: input labels
-        :param kwargs: some parameters
         :return: score
         """
         return self.model.score(x, y)
@@ -253,11 +259,18 @@ class Wrapper(ABC):
 class SklearnWrapper(Wrapper):
     """
     Class to wrap sklearn models.
+
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>> from sklearn.linear_model import LogisticRegression
+    >>>
+    >>> lg_model = lg.wrapper.SklearnWrapper(LogisticRegression())
     """
 
     def __init__(self, model: Any, dataset_id=None, dataset_name=None, db_name=None,
                  fit_params=None, predict_params=None, score_params=None, model_id=None,
-                 cv_split=None, is_standalone=True, **kwargs):
+                 cv_split=None, is_standalone=True):
         """
         Wrapper initialization.
 
@@ -273,14 +286,13 @@ class SklearnWrapper(Wrapper):
         :param model_id: model identifier
         :param cv_split: cross-validation split identifier
         :param is_standalone: True if model can be used independently from other models
-        :param kwargs: other parameters
         """
         model = corner_cases(model)
         Wrapper.__init__(self, model, dataset_id, dataset_name, db_name, fit_params,
                          predict_params, score_params, model_id, cv_split, is_standalone)
         self.parameters = self.parse_parameters()
 
-    def set_random_seed(self, seed, split_index, random_model, **kwargs):
+    def set_random_seed(self, seed, split_index, random_model):
         """
         Set model random state if possible.
 
@@ -289,7 +301,6 @@ class SklearnWrapper(Wrapper):
         :param seed: random seed
         :param split_index: cross-validation split identifier
         :param random_model: whether the model should have the same random state for each cross-validation split
-        :param kwargs: some parameters
         :return: None
         """
         if random_model:
@@ -317,11 +328,28 @@ class SklearnWrapper(Wrapper):
 class PipelineWrapper(Wrapper):
     """
     Class to wrap sklearn pipeline objects.
+
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>> from sklearn.ensemble import RandomForestClassifier
+    >>> from sklearn.pipeline import Pipeline
+    >>> from sklearn.preprocessing import StandardScaler
+    >>> from sklearn.feature_selection import SelectKBest, mutual_info_classif
+    >>>
+    >>> standardizer = StandardScaler()
+    >>> feature_selector = SelectKBest(score_func=mutual_info_classif, k=2)
+    >>> classifier = RandomForestClassifier(random_state=42)
+    >>> pipeline = Pipeline(steps=[("standardizer", standardizer),
+    >>>                            ("feature_selector", feature_selector),
+    >>>                            ("classifier", classifier)])
+    >>>
+    >>> lg_model = lg.wrapper.PipelineWrapper(pipeline)
     """
 
     def __init__(self, model, dataset_id=None, dataset_name=None, db_name=None,
                  fit_params=None, predict_params=None, score_params=None, model_id=None,
-                 cv_split=None, is_standalone=True, **kwargs):
+                 cv_split=None, is_standalone=True):
         """
         Wrapper initialization.
 
@@ -337,7 +365,6 @@ class PipelineWrapper(Wrapper):
         :param model_id: model identifier
         :param cv_split: cross-validation split identifier
         :param is_standalone: True if model can be used independently from other models
-        :param kwargs: other parameters
         """
         model = corner_cases(model)
         Wrapper.__init__(self, model, dataset_id, dataset_name, db_name, fit_params,
@@ -418,7 +445,7 @@ class PipelineWrapper(Wrapper):
             self.serialized_model = serialized_model
         return self
 
-    def set_random_seed(self, seed, split_index, random_model, **kwargs):
+    def set_random_seed(self, seed, split_index, random_model):
         """
         Set model random state if possible.
 
@@ -427,7 +454,6 @@ class PipelineWrapper(Wrapper):
         :param seed: random seed
         :param split_index: cross-validation split identifier
         :param random_model: whether the model should have the same random state for each cross-validation split
-        :param kwargs: some parameters
         :return: None
         """
         if random_model:
@@ -442,15 +468,17 @@ class PipelineWrapper(Wrapper):
         for model in self.models:
             model.set_random_seed(seed, split_index, random_model)
 
+    def parse_parameters(self, **kwargs) -> str:
+        pass
+
     def fit(self, x_train, y_train, **kwargs):
         """
         Fit model with some samples.
 
         Parameters
         --------
-        :param x: train data
-        :param y: train labels
-        :param kwargs: some parameters
+        :param x_train: train data
+        :param y_train: train labels
         :return: None
         """
         x_train_t = x_train
@@ -472,11 +500,18 @@ class PipelineWrapper(Wrapper):
 class KerasWrapper(Wrapper):
     """
     Class to wrap keras objects.
+
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>>
+    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>> lg_model = lg.wrapper.KerasWrapper(keras_nn)
     """
 
     def __init__(self, model: Any, dataset_id=None, dataset_name=None, db_name=None,
                  fit_params=None, predict_params=None, score_params=None, model_id=None,
-                 cv_split=None, is_standalone=True, **kwargs):
+                 cv_split=None, is_standalone=True):
         """
         Wrapper initialization.
 
@@ -492,13 +527,12 @@ class KerasWrapper(Wrapper):
         :param model_id: model identifier
         :param cv_split: cross-validation split identifier
         :param is_standalone: True if model can be used independently from other models
-        :param kwargs: other parameters
         """
         Wrapper.__init__(self, model, dataset_id, dataset_name, db_name, fit_params,
                          predict_params, score_params, model_id, cv_split, is_standalone)
         self.parameters = self.parse_parameters()
 
-    def load_model(self, **kwargs) -> Any:
+    def load_model(self) -> Any:
         """
         Load model from database.
 
@@ -516,7 +550,7 @@ class KerasWrapper(Wrapper):
         else:
             self.is_fitted = False
 
-    def save_model(self, **kwargs) -> None:
+    def save_model(self) -> None:
         """
         Save model into database.
 
@@ -531,7 +565,7 @@ class KerasWrapper(Wrapper):
             model_id, model_type, model_class, serialized_model, fit_parameters, is_standalone = result
             self.model_id = model_id
 
-    def set_random_seed(self, seed: int, split_index, random_model, **kwargs):
+    def set_random_seed(self, seed: int, split_index, random_model):
         """
         Set model random state if possible.
 
@@ -540,7 +574,6 @@ class KerasWrapper(Wrapper):
         :param seed: random seed
         :param split_index: cross-validation split identifier
         :param random_model: whether the model should have the same random state for each cross-validation split
-        :param kwargs: some parameters
         :return: None
         """
         if random_model:
@@ -570,7 +603,6 @@ class KerasWrapper(Wrapper):
         --------
         :param x: train data
         :param y: train labels
-        :param kwargs: some parameters
         :return: None
         """
         if not self.is_fitted:
@@ -585,7 +617,6 @@ class KerasWrapper(Wrapper):
         Parameters
         --------
         :param x: input data
-        :param kwargs: some parameters
         :return: predictions
         """
         predict_params = json.loads(self.predict_parameters)
@@ -599,7 +630,6 @@ class KerasWrapper(Wrapper):
         --------
         :param x: input data
         :param y: input labels
-        :param kwargs: some parameters
         :return: score
         """
         score_params = json.loads(self.score_parameters)
@@ -631,9 +661,16 @@ def parse_sklearn_model(model):
     return ", ".join(args)
 
 
-def parse_neural_model(model):
+def parse_neural_model(model: Model) -> str:
     """
     Parse keras/tensorflow model parameters.
+
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>>
+    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>> parameters = lg.wrapper.parse_neural_model(keras_nn)
 
     Parameters
     --------
@@ -693,6 +730,16 @@ def corner_cases(model: Any) -> Any:
     """
     Check parameter synonyms.
 
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>> from sklearn.ensemble import RandomForest
+    >>>
+    >>> model_1 = lg.wrapper.corner_cases(RandomForestClassifier())
+    >>> model_2 = lg.wrapper.corner_cases(RandomForestClassifier(n_estimators=10))
+    >>>
+    >>> model_1.n_estimators == model_2.n_estimators
+
     Parameters
     --------
     :param model: sklearn model
@@ -707,6 +754,12 @@ def corner_cases(model: Any) -> Any:
 def dict_to_json(dictionary: Union[dict, str]) -> str:
     """
     Sort dictionary by key and transform it into a string.
+
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>>
+    >>> my_string = lg.wrapper.dict_to_json({"C": 1, "B": 2, "A": 3})
 
     Parameters
     --------
@@ -729,6 +782,19 @@ def load_neural_model(model_bytes) -> Any:
     """
     Load keras model from binaries.
 
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>>
+    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>>
+    >>> tmp_file = "nn_binary.h5"
+    >>> keras_nn.save(tmp_file)
+    >>> with open(tmp_file, 'rb') as input_file:
+    >>>     keras_nn_binary = input_file.read()
+    >>>
+    >>> keras_nn_recovered = lg.wrapper.load_neural_model(keras_nn_binary)
+
     Parameters
     --------
     :param model_bytes: serialized keras model
@@ -743,6 +809,14 @@ def load_neural_model(model_bytes) -> Any:
 def save_neural_model(model) -> Any:
     """
     Serialize keras model.
+
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>>
+    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>>
+    >>> keras_nn_binary = lg.wrapper.save_neural_model(keras_nn)
 
     Parameters
     --------
