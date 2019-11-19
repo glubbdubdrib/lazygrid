@@ -8,10 +8,12 @@ LazyGrid has three main features:
   given a grid of parameters (`Grid search <#grid-search>`__)
 - it can compare the performance of a list of models using cross-validation
   and statistical tests (`Model comparison <#model-comparison>`__), and
-- it follows the memoization paradigm, avoiding fitting a model or a
-  pipeline step twice
-  (`Memoization <#memoization>`__).
+- it follows the
+  `memoization paradigm <https://en.wikipedia.org/wiki/Memoization>`__,
+  avoiding fitting a model or a pipeline step twice.
 
+The package is `highly customizable <#utilities>`__
+according to the user's needs.
 
 Model generation
 ----------------
@@ -239,126 +241,6 @@ returns a ``Pandas.DataFrame`` containing a summary of the results.
 
     models = [lg_model_1, lg_model_2, lg_model_3]
     results = lg.model_selection.compare_models(models=models, x_train=x, y_train=y)
-
-
-.. raw:: html
-
-    <embed>
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th></th>
-              <th>db-name</th>
-              <th>db-did</th>
-              <th>model_name</th>
-              <th>model_id</th>
-              <th>module</th>
-              <th>version</th>
-              <th>parameters</th>
-              <th>fit_params</th>
-              <th>submodels</th>
-              <th>is_standalone</th>
-              <th>train_cv</th>
-              <th>val_cv</th>
-              <th>mean</th>
-              <th>ci-l-bound</th>
-              <th>ci-u-bound</th>
-              <th>separable</th>
-              <th>pvalue</th>
-              <th>test</th>
-              <th>alpha</th>
-              <th>metric</th>
-              <th>random-data</th>
-              <th>random-model</th>
-              <th>seed</th>
-              <th>n-splits</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>0</th>
-              <td>make-classification</td>
-              <td>1</td>
-              <td>LogisticRegression</td>
-              <td>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]</td>
-              <td>sklearn</td>
-              <td>0.21.3</td>
-              <td>C: 1.0, class_weight: None, dual: False, fit_intercept: True, intercept_scaling: 1, l1_ratio: None, max_iter: 100, multi_class: warn, n_jobs: None, penalty: l2, random_state: 9, solver: warn, tol: 0.0001, verbose: 0, warm_start: False</td>
-              <td>{}</td>
-              <td></td>
-              <td>True</td>
-              <td>[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]</td>
-              <td>[0.898989898989899, 0.898989898989899, 1.0, 1.0, 1.0, 0.8000000000000002, 1.0, 1.0, 1.0, 1.0]</td>
-              <td>0.959798</td>
-              <td>0.909641</td>
-              <td>1</td>
-              <td>False</td>
-              <td>1.000000</td>
-              <td>mannwhitneyu</td>
-              <td>0.05</td>
-              <td>f1</td>
-              <td>True</td>
-              <td>True</td>
-              <td>42</td>
-              <td>10</td>
-            </tr>
-            <tr>
-              <th>1</th>
-              <td>make-classification</td>
-              <td>1</td>
-              <td>RandomForestClassifier</td>
-              <td>[11, 12, 13, 14, 15, 16, 17, 18, 19, 20]</td>
-              <td>sklearn</td>
-              <td>0.21.3</td>
-              <td>base_estimator: DecisionTreeClassifier(class_weight=None, criterion='gini', max_depth=None, max_features=None, max_leaf_nodes=None, min_impurity_decrease=0.0, min_impurity_split=None, min_samples_leaf=1, min_samples_split=2, min_weight_fraction_leaf=0.0, presort=False, random_state=None, splitter='best'), bootstrap: True, class_weight: None, criterion: gini, estimator_params: ('criterion', 'max_depth', 'min_samples_split', 'min_samples_leaf', 'min_weight_fraction_leaf', 'max_features', 'max_leaf_nodes', 'min_impurity_decrease', 'min_impurity_split', 'random_state'), max_depth: None, max_features: auto, max_leaf_nodes: None, min_impurity_decrease: 0.0, min_impurity_split: None, min_samples_leaf: 1, min_samples_split: 2, min_weight_fraction_leaf: 0.0, n_estimators: 10, n_jobs: None, oob_score: False, random_state: 9, verbose: 0, warm_start: False</td>
-              <td>{}</td>
-              <td></td>
-              <td>True</td>
-              <td>[0.9555335968379446, 1.0, 0.9555335968379446, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9777667984189722, 1.0]</td>
-              <td>[0.7916666666666666, 0.6969696969696969, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.898989898989899, 0.898989898989899]</td>
-              <td>0.928662</td>
-              <td>0.851488</td>
-              <td>1</td>
-              <td>False</td>
-              <td>0.532541</td>
-              <td>mannwhitneyu</td>
-              <td>0.05</td>
-              <td>f1</td>
-              <td>True</td>
-              <td>True</td>
-              <td>42</td>
-              <td>10</td>
-            </tr>
-            <tr>
-              <th>2</th>
-              <td>make-classification</td>
-              <td>1</td>
-              <td>RidgeClassifier</td>
-              <td>[21, 22, 23, 24, 25, 26, 27, 28, 29, 30]</td>
-              <td>sklearn</td>
-              <td>0.21.3</td>
-              <td>alpha: 1.0, class_weight: None, copy_X: True, fit_intercept: True, max_iter: None, normalize: False, random_state: 9, solver: auto, tol: 0.001</td>
-              <td>{}</td>
-              <td></td>
-              <td>True</td>
-              <td>[0.9888875169774047, 1.0, 1.0, 1.0, 1.0, 0.9888875169774047, 1.0, 1.0, 1.0, 1.0]</td>
-              <td>[0.7916666666666666, 0.898989898989899, 1.0, 1.0, 1.0, 0.898989898989899, 1.0, 1.0, 0.898989898989899, 1.0]</td>
-              <td>0.948864</td>
-              <td>0.896696</td>
-              <td>1</td>
-              <td>False</td>
-              <td>0.654039</td>
-              <td>mannwhitneyu</td>
-              <td>0.05</td>
-              <td>f1</td>
-              <td>True</td>
-              <td>True</td>
-              <td>42</td>
-              <td>10</td>
-            </tr>
-          </tbody>
-        </table>
-    </embed>
 
 
 Utilities

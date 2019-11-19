@@ -95,21 +95,11 @@ is available on ReadTheDocs.
 
 
 Table Of Contents
-^^^^^^^^^^^^^^^^^
+------------------
 
 -  `Getting Started <#getting-started>`__
 -  `Documentation <#documentation>`__
 -  `How to use <#how-to-use>`__
-
-   -  `Pipeline generation <#pipeline-generation>`__
-   -  `Grid search generation <#grid-search-generation>`__
-   -  `Model comparison <#model-comparison>`__
-   -  `Memoization: optimized
-      cross-validation <#memoization-optimized-cross-validation>`__
-   -  `Plots <#plots>`__
-   -  `Automatic comparison <#automatic-comparison>`__
-   -  `Data sets APIs <#data-sets-apis>`__
-
 -  `Running tests <#running-tests>`__
 -  `Contributing <#contributing>`__
 -  `Authors <#authors>`__
@@ -150,24 +140,22 @@ is available on ReadTheDocs.
 How to use
 ----------
 
-LazyGrid has three main features: it can generate all possible
-pipelines given a set of steps, it can compare the performance of a
-list of models using cross-validation and statistical tests and it
-follows the memoization paradigm, avoiding fitting a model or a pipeline
-step twice.
+LazyGrid has three main features:
 
-Model wrapper
-~~~~~~~~~~~~~
+- it can generate all possible pipelines given a set of steps
+  (`Pipeline generation <#pipeline-generation>`__) or all possible models
+  given a grid of parameters (`Grid search <#grid-search>`__)
+- it can compare the performance of a list of models using cross-validation
+  and statistical tests (`Model comparison <#model-comparison>`__), and
+- it follows the
+  `memoization paradigm <https://en.wikipedia.org/wiki/Memoization>`__,
+  avoiding fitting a model or a pipeline step twice.
 
-LazyGrid provides several classes to wrap machine learning models to make
-them able to interface properly with a
-`SQLite <https://www.sqlite.org/index.html>`__ database where fitted models
-will be stored.
-In order to use LazyGrid methods you should wrap your models first.
-Model wrappers include classes as:
-``SklearnWrapper``, ``PipelineWrapper`` (for ``sklearn`` pipelines), and
-``KerasWrapper``. Moreover you can extend the abstract class ``Wrapper``
-and customize the wrapper behavior according to your needs.
+The package is `highly customizable <#utilities>`__
+according to the user's needs.
+
+Model generation
+^^^^^^^^^^^^^^^^
 
 
 Pipeline generation
@@ -195,10 +183,10 @@ method will return a list of models of type ``sklearn.Pipeline``.
 
     elements = [preprocessors, feature_selectors, classifiers]
 
-    list_of_models = lg.generate_grid(elements)
+    list_of_models = lg.grid.generate_grid(elements)
 
-Grid search generation
-~~~~~~~~~~~~~~~~~~~~~~
+Grid search
+~~~~~~~~~~~~~~~~~~~
 
 LazyGrid implements a useful functionality to emulate the grid search
 algorithm by generating all possible models given the model structure
@@ -268,31 +256,18 @@ compare keras models with different optimizers and fit parameters.
     fit_params = {"epochs": [5, 10, 20], "batch_size": [10, 20]}
 
     # generate all possible models given the parameters' grid
-    models, fit_parameters = lg.generate_grid_search(kmodel, model_params, fit_params)
+    models, fit_parameters = lg.grid.generate_grid_search(kmodel, model_params, fit_params)
 
 
-    # define scoring function for one-hot-encoded lables
-    def score_fun(y, y_pred):
-        y = np.argmax(y, axis=1)
-        y_pred = np.argmax(y_pred, axis=1)
-        return f1_score(y, y_pred, average="weighted")
-
-    db_name = "database"
-    dataset_id = 2
-    dataset_name = "digits"
-
-    # cross validation
-    for model, fp in zip(models, fit_parameters):
-        model = lg.KerasWrapper(model, fit_params=fp,
-                                db_name=db_name, dataset_id=dataset_id, dataset_name=dataset_name)
-        score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x_train, y=y_train,
-                                                                             x_val=x_val, y_val=y_val,
-                                                                             random_data=False, n_splits=3,
-                                                                             scoring=score_fun)
-
+You will find the conclusion of this example in the
+`plot section <#plot-your-results>`__.
 
 Model comparison
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
+
+
+Statistical hypothesis tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Once you have generated a list of models (or pipelines), LazyGrid
 provides friendly APIs to compare models' performances by using a
@@ -311,7 +286,7 @@ method applies the following algorithm: it looks for the model having
 the highest mean value over its cross-validation scores ("the best
 model"); it compares the distribution of the scores of each model
 against the distribution of the scores of the best model applying a
-`statistical hypothesis test <lazygrid/statistics.md>`__.
+statistical hypothesis test.
 
 You can customize the comparison by modifying the statistical hypothesis
 test (it should be compatible with ``scipy.stats``) or the significance
@@ -337,12 +312,12 @@ level for the test.
     score3 = cross_val_score(estimator=model3, X=x, y=y, cv=10)
 
     scores = [score1, score2, score3]
-    best_idx, best_solutions_idx, pvalues = lg.find_best_solution(scores,
-                                                                  test=mannwhitneyu,
-                                                                  alpha=0.05)
+    best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution(scores,
+                                                                             test=mannwhitneyu,
+                                                                             alpha=0.05)
 
-Memoization: optimized cross-validation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Optimized cross-validation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 LazyGrid includes an optimized implementation of cross-validation
 (``cross_validation``), specifically devised when a huge number of
@@ -371,40 +346,17 @@ fetches the model that has already been fitted from the database.
 
     elements = [preprocessors, feature_selectors, classifiers]
 
-    models = lg.generate_grid(elements)
+    models = lg.grid.generate_grid(elements)
 
     for model in models:
-        model = lg.SklearnWrapper(model, dataset_id=1, db_name="sklearn-db",
+        model = lg.wrapper.SklearnWrapper(model, dataset_id=1, db_name="sklearn-db",
                                   dataset_name="make-classification")
-        score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x, y=y)
+        score, fitted_models, \
+            y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
 
 
-Plots
-~~~~~
-
-Should you need a visual output of the results, LazyGrid includes
-the ``generate_confusion_matrix`` to save a cunfusion matrix figure
-and to return a `pycm <https://www.pycm.ir/>`__ ConfusionMatrix object.
-
-.. code:: python
-
-    ...
-    score, fitted_models, y_pred_list, y_true_list = lg.cross_validation(model=model, x=x_train, y=y_train,
-                                                                         x_val=x_val, y_val=y_val,
-                                                                         random_data=False, n_splits=3,
-                                                                         scoring=score_fun)
-
-    conf_mat = lg.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
-                                            y_pred_list, y_true_list, encoding="one-hot")
-
-
-.. image:: https://raw.githubusercontent.com/glubbdubdrib/lazygrid/master/figs/conf_mat_Sequential_3.png
-    :width: 400
-    :alt: Confusion matrix example
-
-
-Automatic comparison
-~~~~~~~~~~~~~~~~~~~~
+Automatic reports
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``compare_models`` method provides a friendly approach to compare a
 list of models: it calls the ``cross_validation`` method for each
@@ -423,139 +375,217 @@ returns a ``Pandas.DataFrame`` containing a summary of the results.
 
     x, y = make_classification(random_state=42)
 
-    lg_model_1 = lg.SklearnWrapper(LogisticRegression(), dataset_id=1,
-                                   dataset_name="make-classification", db_name="lazygrid-test")
-    lg_model_2 = lg.SklearnWrapper(RandomForestClassifier(), dataset_id=1,
-                                   dataset_name="make-classification", db_name="lazygrid-test")
-    lg_model_3 = lg.SklearnWrapper(RidgeClassifier(), dataset_id=1,
-                                   dataset_name="make-classification", db_name="lazygrid-test")
+    lg_model_1 = lg.wrapper.SklearnWrapper(LogisticRegression())
+    lg_model_2 = lg.wrapper.SklearnWrapper(RandomForestClassifier())
+    lg_model_3 = lg.wrapper.SklearnWrapper(RidgeClassifier())
 
     models = [lg_model_1, lg_model_2, lg_model_3]
-    results = lg.compare_models(models=models, x_train=x, y_train=y)
+    results = lg.model_selection.compare_models(models=models, x_train=x, y_train=y)
 
-    results.to_html("./results.html")
 
-.. raw:: html
+Utilities
+^^^^^^^^^^^^
 
-    <embed>
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th></th>
-              <th>db-name</th>
-              <th>db-did</th>
-              <th>model_name</th>
-              <th>model_id</th>
-              <th>module</th>
-              <th>version</th>
-              <th>parameters</th>
-              <th>fit_params</th>
-              <th>submodels</th>
-              <th>is_standalone</th>
-              <th>train_cv</th>
-              <th>val_cv</th>
-              <th>mean</th>
-              <th>ci-l-bound</th>
-              <th>ci-u-bound</th>
-              <th>separable</th>
-              <th>pvalue</th>
-              <th>test</th>
-              <th>alpha</th>
-              <th>metric</th>
-              <th>random-data</th>
-              <th>random-model</th>
-              <th>seed</th>
-              <th>n-splits</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>0</th>
-              <td>make-classification</td>
-              <td>1</td>
-              <td>LogisticRegression</td>
-              <td>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]</td>
-              <td>sklearn</td>
-              <td>0.21.3</td>
-              <td>C: 1.0, class_weight: None, dual: False, fit_intercept: True, intercept_scaling: 1, l1_ratio: None, max_iter: 100, multi_class: warn, n_jobs: None, penalty: l2, random_state: 9, solver: warn, tol: 0.0001, verbose: 0, warm_start: False</td>
-              <td>{}</td>
-              <td></td>
-              <td>True</td>
-              <td>[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]</td>
-              <td>[0.898989898989899, 0.898989898989899, 1.0, 1.0, 1.0, 0.8000000000000002, 1.0, 1.0, 1.0, 1.0]</td>
-              <td>0.959798</td>
-              <td>0.909641</td>
-              <td>1</td>
-              <td>False</td>
-              <td>1.000000</td>
-              <td>mannwhitneyu</td>
-              <td>0.05</td>
-              <td>f1</td>
-              <td>True</td>
-              <td>True</td>
-              <td>42</td>
-              <td>10</td>
-            </tr>
-            <tr>
-              <th>1</th>
-              <td>make-classification</td>
-              <td>1</td>
-              <td>RandomForestClassifier</td>
-              <td>[11, 12, 13, 14, 15, 16, 17, 18, 19, 20]</td>
-              <td>sklearn</td>
-              <td>0.21.3</td>
-              <td>base_estimator: DecisionTreeClassifier(class_weight=None, criterion='gini', max_depth=None, max_features=None, max_leaf_nodes=None, min_impurity_decrease=0.0, min_impurity_split=None, min_samples_leaf=1, min_samples_split=2, min_weight_fraction_leaf=0.0, presort=False, random_state=None, splitter='best'), bootstrap: True, class_weight: None, criterion: gini, estimator_params: ('criterion', 'max_depth', 'min_samples_split', 'min_samples_leaf', 'min_weight_fraction_leaf', 'max_features', 'max_leaf_nodes', 'min_impurity_decrease', 'min_impurity_split', 'random_state'), max_depth: None, max_features: auto, max_leaf_nodes: None, min_impurity_decrease: 0.0, min_impurity_split: None, min_samples_leaf: 1, min_samples_split: 2, min_weight_fraction_leaf: 0.0, n_estimators: 10, n_jobs: None, oob_score: False, random_state: 9, verbose: 0, warm_start: False</td>
-              <td>{}</td>
-              <td></td>
-              <td>True</td>
-              <td>[0.9555335968379446, 1.0, 0.9555335968379446, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9777667984189722, 1.0]</td>
-              <td>[0.7916666666666666, 0.6969696969696969, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.898989898989899, 0.898989898989899]</td>
-              <td>0.928662</td>
-              <td>0.851488</td>
-              <td>1</td>
-              <td>False</td>
-              <td>0.532541</td>
-              <td>mannwhitneyu</td>
-              <td>0.05</td>
-              <td>f1</td>
-              <td>True</td>
-              <td>True</td>
-              <td>42</td>
-              <td>10</td>
-            </tr>
-            <tr>
-              <th>2</th>
-              <td>make-classification</td>
-              <td>1</td>
-              <td>RidgeClassifier</td>
-              <td>[21, 22, 23, 24, 25, 26, 27, 28, 29, 30]</td>
-              <td>sklearn</td>
-              <td>0.21.3</td>
-              <td>alpha: 1.0, class_weight: None, copy_X: True, fit_intercept: True, max_iter: None, normalize: False, random_state: 9, solver: auto, tol: 0.001</td>
-              <td>{}</td>
-              <td></td>
-              <td>True</td>
-              <td>[0.9888875169774047, 1.0, 1.0, 1.0, 1.0, 0.9888875169774047, 1.0, 1.0, 1.0, 1.0]</td>
-              <td>[0.7916666666666666, 0.898989898989899, 1.0, 1.0, 1.0, 0.898989898989899, 1.0, 1.0, 0.898989898989899, 1.0]</td>
-              <td>0.948864</td>
-              <td>0.896696</td>
-              <td>1</td>
-              <td>False</td>
-              <td>0.654039</td>
-              <td>mannwhitneyu</td>
-              <td>0.05</td>
-              <td>f1</td>
-              <td>True</td>
-              <td>True</td>
-              <td>42</td>
-              <td>10</td>
-            </tr>
-          </tbody>
-        </table>
-    </embed>
 
-Data sets APIs
-~~~~~~~~~~~~~~
+Customize your cross-validation score
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, during the cross-validation procedure, LazyGrid exploits as score
+function the built-in ``score`` method of the current ``model``, calling
+:code:`model.score(x, y)`.
+
+However, two levels of customization are provided. The first one allows you
+to use custom sklear-like score functions (e.g. ``accuracy_score`` or ``f1_score``).
+You just need to call the cross-validation procedure specifying the desired
+score function:
+
+.. code:: python
+
+    import lazygrid as lg
+    from sklearn.metrics import f1_score
+
+    ...
+
+    lg.model_selection.cross_validation(model, x, y, score_fun=f1_score)
+
+Alternatively, if you really need something different, you could write your
+own score function. LazyGrid assigns to the ``generic_score`` method
+all available local variables at each cross-validation step, giving you
+maximum power and flexibility:
+
+.. code:: python
+
+    ...
+    score[split_index] = generic_score(**locals())
+    ...
+
+As an example, you could use a score function to measure the class-imbalance
+ratio of the validation set:
+
+.. code:: python
+
+    import numpy as np
+
+    def compute_class_imbalance_ratio(y_val, *args, **kwargs):
+        """
+        Compute class-imbalance ratio of the validation set.
+        """
+
+        values, counts = np.unique(y_val, return_counts=True)
+        pmax = np.max(counts) # majority class
+        pmin = np.min(counts) # minority class
+        imbalance_ratio = pmax / pmin
+        return imbalance_ratio
+
+and use it when calling the cross-validation procedure:
+
+.. code:: python
+
+    import lazygrid as lg
+
+    ...
+
+    lg.model_selection.cross_validation(model, x, y, generic_score=compute_class_imbalance_ratio)
+
+
+Customize your Wrapper
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+LazyGrid provides several classes to wrap machine learning models to make
+them able to interface properly with a
+`SQLite <https://www.sqlite.org/index.html>`__ database where fitted models
+will be stored.
+In order to use LazyGrid methods you should wrap your models first.
+Model wrappers include classes as:
+``SklearnWrapper``, ``PipelineWrapper`` (for ``sklearn`` pipelines), and
+``KerasWrapper``.
+
+Moreover you can extend the abstract class ``Wrapper``
+and customize the wrapper behavior according to your needs.
+You just need to implement the ``set_random_seed`` and the
+``parse_parameters`` abstract methods. The easiest (but deprecated)
+way could be skipping them as follows:
+
+.. code:: python
+
+    from lazygrid.wrapper import Wrapper
+
+
+    class CustomWrapper(Wrapper):
+
+        def __init__(self, **kwargs):
+            Wrapper.__init__(self, **kwargs)
+
+        def set_random_seed(self, seed, split_index, random_model, **kwargs):
+            pass
+
+        def parse_parameters(self, **kwargs) -> str:
+            pass
+
+
+
+Log your progress
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you need to log your progress, you can use the built-in logger as follows:
+
+.. code:: python
+
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.datasets import make_classification
+    import lazygrid as lg
+
+    logger = lg.file_logger.initialize_logging()
+    logger.info("Start using LazyGrid!")
+
+    logger.info("Loading data set...")
+    x, y = make_classification(random_state=42)
+
+    model = lg.wrapper.SklearnWrapper(RandomForestClassifier())
+    score, fitted_models, \
+        y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y,
+                                                                       logger=logger)
+
+    lg.file_logger.close_logging(logger)
+
+
+Plot your results
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Should you need a visual output of the results, LazyGrid includes
+the ``generate_confusion_matrix`` method to save a cunfusion matrix figure
+and to return a `pycm <https://www.pycm.ir/>`__ ConfusionMatrix object.
+
+The following lines conclude the `keras example <#grid-search>`__:
+
+.. code:: python
+
+    ...
+
+    # define scoring function for one-hot-encoded lables
+    def score_fun(y, y_pred):
+        y = np.argmax(y, axis=1)
+        y_pred = np.argmax(y_pred, axis=1)
+        return f1_score(y, y_pred, average="weighted")
+
+    db_name = "database"
+    dataset_id = 2
+    dataset_name = "digits"
+
+    # cross validation
+    for model, fp in zip(models, fit_parameters):
+        model = lg.wrapper.KerasWrapper(model, fit_params=fp, db_name=db_name,
+                                        dataset_id=dataset_id, dataset_name=dataset_name)
+        score, fitted_models, \
+            y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x_train, y=y_train,
+                                                                           x_val=x_val, y_val=y_val,
+                                                                           random_data=False, n_splits=3,
+                                                                           scoring=score_fun)
+
+    conf_mat = lg.plotter.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
+                                                    y_pred_list, y_true_list, encoding="one-hot")
+
+
+.. image:: https://raw.githubusercontent.com/glubbdubdrib/lazygrid/master/figs/conf_mat_Sequential_3.png
+    :width: 400
+    :alt: Confusion matrix example
+
+If you are looking for a visual representation of your
+cross-validation scores, you may use the ``
+
+.. code:: python
+
+    from sklearn.linear_model import LogisticRegression, RidgeClassifier
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.datasets import make_classification
+    import lazygrid as lg
+
+    x, y = make_classification(random_state=42)
+
+    lg_model_1 = lg.wrapper.SklearnWrapper(LogisticRegression())
+    lg_model_2 = lg.wrapper.SklearnWrapper(RandomForestClassifier())
+    lg_model_3 = lg.wrapper.SklearnWrapper(RidgeClassifier())
+
+    models = [lg_model_1, lg_model_2, lg_model_3]
+
+    score_list = []
+    labels = []
+    for model in models:
+        scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
+        score_list.append(scores["val_cv"])
+        labels.append(model.model_name)
+
+    file_name = "val_scores"
+    title = "Model comparison"
+    lg.plotter.plot_boxplots(score_list, labels, file_name, title)
+
+.. image:: https://raw.githubusercontent.com/glubbdubdrib/lazygrid/master/figs/box_plot_val_scores.png
+    :width: 400
+    :alt: Box plot example
+
+
+Data set APIs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 LazyGrid includes a set of easy-to-use APIs to fetch
 `OpenML <https://www.openml.org/>`__ data sets (NB: OpenML has a
@@ -566,7 +596,8 @@ sets: it looks for OpenML data sets compliant with the requirements
 specified; for such data sets, it fetches the characteristics of
 their latest version; it saves in a local cache file the properties
 of such data sets, so that experiments can be easily reproduced using
-the same data sets and versions.
+the same data sets and versions. You will find the list of downloaded
+data sets inside ``./data/<datetime>-datalist.csv``.
 
 The ``load_openml_dataset`` method can then be used to download the
 required data set version.
@@ -575,13 +606,13 @@ required data set version.
 
     import lazygrid as lg
 
-    datasets = lg.fetch_datasets(task="classification", min_classes=2,
-                                 max_samples=1000, max_features=10)
+    datasets = lg.datasets.fetch_datasets(task="classification", min_classes=2,
+                                          max_samples=1000, max_features=10)
 
     # get the latest (or cached) version of the iris data set
     data_id = datasets.loc["iris"].did
 
-    x, y, n_classes = lg.load_openml_dataset(data_id)
+    x, y, n_classes = lg.datasets.load_openml_dataset(data_id)
 
 
 

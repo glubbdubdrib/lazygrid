@@ -70,7 +70,7 @@ The source code and minimal working examples can be found on
 
     modules/database
     modules/datasets
-    modules/file_logger
+    modules/logger
     modules/grid
     modules/model_selection
     modules/neural_models
