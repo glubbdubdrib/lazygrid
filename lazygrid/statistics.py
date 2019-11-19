@@ -23,24 +23,25 @@ from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
 
 
-def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> List[float]:
+def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> List:
     """
     Compute the confidence interval of the mean from sample data.
 
     Examples
     --------
     >>> import numpy as np
+    >>> import lazygrid as lg
     >>>
     >>> np.random.seed(42)
     >>> x = np.random.normal(loc=0, scale=2, size=10)
     >>> confidence_level = 0.05
     >>>
-    >>> confidence_interval_mean_t(x, confidence_level)
+    >>> lg.statistics.confidence_interval_mean_t(x, confidence_level)
     (-0.13829578539063092, 1.9305402321856557)
 
 
     Notes
-    --------
+    -----
     You should use the t distribution rather than the normal distribution
     when the variance is not known and has to be estimated from sample data.
 
@@ -80,6 +81,7 @@ def find_best_solution(solutions: list,
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> from sklearn.datasets import make_classification
     >>> from sklearn.model_selection import cross_val_score
+    >>> import lazygrid as lg
     >>>
     >>> x, y = make_classification(random_state=42)
     >>>
@@ -93,7 +95,7 @@ def find_best_solution(solutions: list,
     >>> score3 = cross_val_score(estimator=model3, X=x, y=y, cv=10)
     >>>
     >>> scores = [score1, score2, score3]
-    >>> best_idx, best_solutions_idx, pvalues = find_best_solution(scores)
+    >>> best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution(scores)
     >>> model_names[best_idx]
     'LogisticRegression'
     >>> best_solutions_idx

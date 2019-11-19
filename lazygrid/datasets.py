@@ -39,6 +39,7 @@ def load_npy_dataset(path_x: str, path_y: str, logger: Logger = None) -> (np.nda
     >>> import os
     >>> from sklearn.datasets import make_classification
     >>> import numpy as np
+    >>> import lazygrid as lg
     >>>
     >>> x, y = make_classification(random_state=42)
     >>>
@@ -46,7 +47,7 @@ def load_npy_dataset(path_x: str, path_y: str, logger: Logger = None) -> (np.nda
     >>> np.save(path_x, x)
     >>> np.save(path_y, y)
     >>>
-    >>> x, y, n_classes = load_npy_dataset(path_x, path_y)
+    >>> x, y, n_classes = lg.datasets.load_npy_dataset(path_x, path_y)
 
     Parameters
     --------
@@ -74,7 +75,10 @@ def load_openml_dataset(data_id: int = None, dataset_name: str = None, logger: L
 
     Examples
     --------
-    >>> x, y, n_classes = load_openml_dataset(dataset_name="iris")
+
+    >>> import lazygrid as lg
+    >>>
+    >>> x, y, n_classes = lg.datasets.load_openml_dataset(dataset_name="iris")
     >>> n_classes
     3
 
@@ -211,7 +215,9 @@ def fetch_datasets(output_dir: str = "./data", update_data: bool = False,
 
     Examples
     --------
-    >>> datasets = fetch_datasets(task="classification", min_classes=2, max_samples=1000, max_features=10)
+    >>> import lazygrid as lg
+    >>>
+    >>> datasets = lg.datasets.fetch_datasets(task="classification", min_classes=2, max_samples=1000, max_features=10)
     >>> datasets.loc["iris"]
     version          45
     did           42098

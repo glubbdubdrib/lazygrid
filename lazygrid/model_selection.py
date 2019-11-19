@@ -52,10 +52,9 @@ def cross_validation(model: Wrapper,
     >>>
     >>> x, y = make_classification()
     >>>
-    >>> lg_model = lg.SklearnWrapper(LogisticRegression(), dataset_id=1,
-    ...                              dataset_name="make-classification", db_name="lazygrid-test")
+    >>> lg_model = lg.wrapper.SklearnWrapper(LogisticRegression())
+    >>> score, fitted_models, y_pred_list, y_list = lg.model_selection.cross_validation(model=lg_model, x=x, y=y)
     >>>
-    >>> score, fitted_models, y_pred_list, y_list = cross_validation(model=lg_model, x=x, y=y)
     >>> type(score)
     <class 'dict'>
     >>> type(fitted_models)
@@ -362,15 +361,12 @@ def compare_models(models: List[Wrapper],
     >>>
     >>> x, y = make_classification(random_state=42)
     >>>
-    >>> lg_model_1 = lg.SklearnWrapper(LogisticRegression(), dataset_id=1,
-    ...                                dataset_name="make-classification", db_name="lazygrid-test")
-    >>> lg_model_2 = lg.SklearnWrapper(RandomForestClassifier(), dataset_id=1,
-    ...                                dataset_name="make-classification", db_name="lazygrid-test")
-    >>> lg_model_3 = lg.SklearnWrapper(RidgeClassifier(), dataset_id=1,
-    ...                                dataset_name="make-classification", db_name="lazygrid-test")
+    >>> lg_model_1 = lg.wrapper.SklearnWrapper(LogisticRegression())
+    >>> lg_model_2 = lg.wrapper.SklearnWrapper(RandomForestClassifier())
+    >>> lg_model_3 = lg.wrapper.SklearnWrapper(RidgeClassifier())
     >>>
     >>> models = [lg_model_1, lg_model_2, lg_model_3]
-    >>> results = compare_models(models=models, x_train=x, y_train=y)
+    >>> results = lg.model_selection.compare_models(models=models, x_train=x, y_train=y)
     >>>
     >>> pd.set_option('display.width', 9)
     >>> results[['model_name', 'module', 'version', 'ci-l-bound', 'ci-u-bound', 'pvalue']] #doctest: +ELLIPSIS

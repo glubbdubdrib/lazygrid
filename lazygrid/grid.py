@@ -38,6 +38,7 @@ def generate_grid(elements: list) -> list:
     >>> from sklearn.svm import SVC
     >>> from sklearn.feature_selection import SelectKBest, f_classif
     >>> from sklearn.preprocessing import RobustScaler, StandardScaler
+    >>> import lazygrid as lg
     >>>
     >>> preprocessors = [StandardScaler(), RobustScaler()]
     >>> feature_selectors = [SelectKBest(score_func=f_classif, k=1), SelectKBest(score_func=f_classif, k=2)]
@@ -45,7 +46,7 @@ def generate_grid(elements: list) -> list:
     >>>
     >>> elements = [preprocessors, feature_selectors, classifiers]
     >>>
-    >>> pipelines = generate_grid(elements)
+    >>> pipelines = lg.grid.generate_grid(elements)
 
     Parameters
     --------
@@ -84,29 +85,20 @@ def generate_grid_search(model: KerasClassifier, model_params: dict,
     >>> import keras
     >>> from keras import Sequential
     >>> from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
-    >>> from keras.utils import to_categorical
-    >>> from sklearn.metrics import f1_score
-    >>> from sklearn.datasets import load_digits
-    >>> from sklearn.model_selection import StratifiedKFold
     >>> import lazygrid as lg
-    >>> import numpy as np
     >>> from keras.wrappers.scikit_learn import KerasClassifier
     >>>
     >>> # define keras model generator
     >>> def create_keras_model(input_shape, optimizer, n_classes):
-    ...
     ...     kmodel = Sequential()
-    ...     kmodel.add(Conv2D(32, kernel_size=(5, 5), strides=(1, 1),
-    ...                       activation='relu',
-    ...                       input_shape=input_shape))
+    ...     kmodel.add(Conv2D(32, kernel_size=(5, 5), strides=(1, 1), activation='relu', input_shape=input_shape))
     ...     kmodel.add(MaxPooling2D(pool_size=(2, 2)))
     ...     kmodel.add(Flatten())
     ...     kmodel.add(Dense(1000, activation='relu'))
     ...     kmodel.add(Dense(n_classes, activation='softmax'))
     ...
     ...     kmodel.compile(loss=keras.losses.categorical_crossentropy,
-    ...                    optimizer=optimizer,
-    ...                    metrics=['accuracy'])
+    ...                    optimizer=optimizer, metrics=['accuracy'])
     ...     return kmodel
     >>>
     >>> # cast keras model into sklearn model
@@ -117,7 +109,7 @@ def generate_grid_search(model: KerasClassifier, model_params: dict,
     >>> fit_params = {"epochs": [5, 10, 20], "batch_size": [10, 20]}
     >>>
     >>> # generate all possible models given the parameters' grid
-    >>> models, fit_parameters = lg.generate_grid_search(kmodel, model_params, fit_params)
+    >>> models, fit_parameters = lg.grid.generate_grid_search(kmodel, model_params, fit_params)
 
 
     Parameters

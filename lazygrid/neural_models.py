@@ -26,6 +26,29 @@ def reset_weights(model: Sequential, seed: int = 42):
     """
     Random reset of neural network's weights.
 
+    Examples
+    --------
+    >>> from keras import Sequential
+    >>> import numpy as np
+    >>> import random
+    >>> import tensorflow as tf
+    >>> from keras import backend as K
+    >>> import os
+    >>> import lazygrid as lg
+    >>>
+    >>> # These lines are mandatory if you need to get the same results each time you use the network!
+    >>> seed = 42
+    >>> np.random.seed(seed)
+    >>> random.seed(seed)
+    >>> os.environ['PYTHONHASHSEED'] = str(seed)
+    >>> config = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+    >>> tf.set_random_seed(seed)
+    >>> sess = tf.Session(graph=tf.get_default_graph(), config=config)
+    >>> K.set_session(sess)
+    >>>
+    >>> keras_model = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>> lg.neural_models.reset_weights(keras_model, seed=seed)
+
     Parameters
     --------
     :param model: Keras, theano, or tensorflow model
@@ -81,6 +104,13 @@ def keras_classifier(layers: list, input_shape: tuple, n_classes: int,
                      model_name: str = "MyKerasNet", lr: float = 0.1) -> Sequential:
     """
     Generate keras feed-forward neural model for classification.
+
+    Examples
+    --------
+    >>> from keras import Sequential
+    >>> import lazygrid as lg
+    >>>
+    >>> keras_model = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
 
     Parameters
     --------

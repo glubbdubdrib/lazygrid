@@ -17,17 +17,28 @@
 
 import os
 import sqlite3
-from typing import Optional, Any
+from typing import Optional, Any, Iterable
 import numpy as np
-from .config import create_model_stmt, insert_model_stmt, query_model_stmt
 
 
-def save_to_db(db_name: str, entry: tuple, query: tuple,
-               create_stmt: str = create_model_stmt,
-               insert_stmt: str = insert_model_stmt,
-               query_stmt: str = query_model_stmt) -> Optional[Any]:
+def save_to_db(db_name: str, entry: Iterable, query: Iterable,
+               create_stmt: str, insert_stmt: str, query_stmt: str) -> Optional[Any]:
     """
     Save fitted model into a database.
+
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>> from sklearn.linear_model import LogisticRegression
+    >>>
+    >>> model = lg.wrapper.SklearnWrapper(LogisticRegression())
+    >>>
+    >>> entry = model.get_entry()
+    >>> query = model.get_query()
+    >>>
+    >>> query_result = lg.database.save_to_db(model.db_name, entry, query)
+    >>>
+    >>> db_entry = lg.database.load_from_db(model.db_name, query)
 
     Parameters
     --------
@@ -67,11 +78,23 @@ def save_to_db(db_name: str, entry: tuple, query: tuple,
     return result
 
 
-def load_from_db(db_name: str, query: tuple,
-                 create_stmt: str = create_model_stmt,
-                 query_stmt: str = query_model_stmt) -> Optional[Any]:
+def load_from_db(db_name: str, query: Iterable, create_stmt: str, query_stmt: str) -> Optional[Any]:
     """
     Load fitted model from a database.
+
+    Examples
+    --------
+    >>> import lazygrid as lg
+    >>> from sklearn.linear_model import LogisticRegression
+    >>>
+    >>> model = lg.wrapper.SklearnWrapper(LogisticRegression())
+    >>>
+    >>> entry = model.get_entry()
+    >>> query = model.get_query()
+    >>>
+    >>> query_result = lg.database.save_to_db(model.db_name, entry, query)
+    >>>
+    >>> db_entry = lg.database.load_from_db(model.db_name, query)
 
     Parameters
     --------
@@ -105,6 +128,20 @@ def load_all_from_db(db_name: str, table_name: str = "MODEL") -> Optional[Any]:
     """
     Load all database items.
 
+    Examples
+    --------
+    >>> from sklearn.linear_model import RidgeClassifier
+    >>> from sklearn.datasets import make_classification
+    >>> import lazygrid as lg
+    >>>
+    >>> x, y = make_classification(random_state=42)
+    >>> model = lg.wrapper.SklearnWrapper(RidgeClassifier(),
+    ...                                   db_name=db_name, dataset_id=1,
+    ...                                   dataset_name="make-classification")
+    >>> scores, _, _, _ = lg.cross_validation(model, x, y)
+    >>>
+    >>> db_entries = lg.database.load_all_from_db(db_name)
+
     Parameters
     --------
     :param db_name: database name
@@ -137,16 +174,15 @@ def load_all_from_db(db_name: str, table_name: str = "MODEL") -> Optional[Any]:
     return result
 
 
-def drop_db(db_name) -> None:
+def drop_db(db_name: str) -> None:
     """
     Drop database table if it exists.
 
     Examples
     --------
-    >>> import os
-    >>> import sqlite3
+    >>> import lazygrid as lg
     >>>
-    >>> drop_db()
+    >>> lg.database.drop_db(db_name="my-database")
 
     Parameters
     --------

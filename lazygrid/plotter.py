@@ -31,6 +31,15 @@ def plot_confusion_matrix(confusion_matrix: pd.DataFrame, font_scale: float,
     """
     Generate confusion matrix figure.
 
+    >>> import pandas as pd
+    >>> import lazygrid as lg
+    >>>
+    >>> conf_mat_dict = {"N": {"N": 48, "P": 2},
+    ...                  "P": {"N": 5, "P": 45}}
+    >>> confusion_matrix = pd.DataFrame.from_dict(conf_mat_dict)
+    >>>
+    >>> lg.plotter.plot_confusion_matrix(confusion_matrix, font_scale=1, file_name="conf_mat.png")
+
     Parameters
     --------
     :param confusion_matrix: confusion matrix dataframe
@@ -55,6 +64,21 @@ def one_hot_list_to_categorical(y_one_hot_list: List[np.ndarray]) -> np.ndarray:
     """
     Transform list of one-hot-encoded labels into a categorical array of labels.
 
+    Examples
+    --------
+    >>> from sklearn.ensemble import RandomForestClassifier
+    >>> from sklearn.datasets import make_classification
+    >>> import lazygrid as lg
+    >>>
+    >>> x, y = make_classification(random_state=42)
+    >>>
+    >>> classifier = RandomForestClassifier(random_state=42)
+    >>>
+    >>> model = lg.wrapper.SklearnWrapper(classifier)
+    >>> score, fitted_models, y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
+    >>>
+    >>> y_true_categorical = lg.plotter.one_hot_list_to_categorical(y_true_list)
+
     Parameters
     --------
     :param y_one_hot_list: one-hot-encoded list of labels
@@ -73,6 +97,22 @@ def generate_confusion_matrix(model_id: int, model_name: str,
                               encoding: str = "categorical") -> pycm.ConfusionMatrix:
     """
     Generate and save confusion matrix.
+
+    Examples
+    --------
+    >>> from sklearn.ensemble import RandomForestClassifier
+    >>> from sklearn.datasets import make_classification
+    >>> import lazygrid as lg
+    >>>
+    >>> x, y = make_classification(random_state=42)
+    >>>
+    >>> classifier = RandomForestClassifier(random_state=42)
+    >>>
+    >>> model = lg.wrapper.SklearnWrapper(classifier)
+    >>> score, fitted_models, y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
+    >>>
+    >>> conf_mat = lg.plotter.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
+    ...                                                 y_pred_list, y_true_list, class_names={0: "N", 1: "P"})
 
     Parameters
     --------
@@ -121,6 +161,32 @@ def generate_confusion_matrix(model_id: int, model_name: str,
 def plot_boxplots(scores: List, labels: List[str], file_name: str, title: str, output_dir: str = "./figures") -> dict:
     """
     Generate and save boxplots.
+
+    Examples
+    --------
+    >>> from sklearn.linear_model import LogisticRegression, RidgeClassifier
+    >>> from sklearn.ensemble import RandomForestClassifier
+    >>> from sklearn.datasets import make_classification
+    >>> import lazygrid as lg
+    >>>
+    >>> x, y = make_classification(random_state=42)
+    >>>
+    >>> lg_model_1 = lg.wrapper.SklearnWrapper(LogisticRegression())
+    >>> lg_model_2 = lg.wrapper.SklearnWrapper(RandomForestClassifier())
+    >>> lg_model_3 = lg.wrapper.SklearnWrapper(RidgeClassifier())
+    >>>
+    >>> models = [lg_model_1, lg_model_2, lg_model_3]
+    >>>
+    >>> score_list = []
+    >>> labels = []
+    >>> for model in models:
+    >>>     scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
+    >>>     score_list.append(scores["val_cv"])
+    >>>     labels.append(model.model_name)
+    >>>
+    >>> file_name = "val_scores"
+    >>> title = "Model comparison"
+    >>> lg.plotter.plot_boxplots(score_list, labels, file_name, title)
 
     Parameters
     --------
