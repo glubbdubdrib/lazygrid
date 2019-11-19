@@ -9,7 +9,9 @@ class TestNeuralModels(unittest.TestCase):
         import lazygrid as lg
 
         keras_model = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,),
-                                          n_classes=2, verbose=True)
+                                                        n_classes=4, verbose=True)
+        keras_model.layers[0].trainable = False
+        lg.neural_models.reset_weights(keras_model)
 
         self.assertTrue(isinstance(keras_model, Sequential))
 
