@@ -27,6 +27,36 @@ class TestModelSelection(unittest.TestCase):
         self.assertTrue(conf_mat.matrix == {"N": {"N": 48, "P": 2},
                                             "P": {"N": 5, "P": 45}})
 
+    def test_cross_validation_generic_score(self):
+
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.datasets import load_breast_cancer
+        import lazygrid as lg
+        import numpy as np
+
+        def compute_class_imbalance_ratio(y_val, *args, **kwargs):
+            """
+            Compute class-imbalance ratio of the validation set.
+            """
+
+            values, counts = np.unique(y_val, return_counts=True)
+            pmax = np.max(counts)  # majority class
+            pmin = np.min(counts)  # minority class
+            imbalance_ratio = np.round(pmax / pmin, 4)
+            return imbalance_ratio
+
+        x, y = load_breast_cancer(return_X_y=True)
+
+        classifier = RandomForestClassifier(random_state=42)
+
+        model = lg.wrapper.SklearnWrapper(classifier)
+        score, _, _, _ = lg.model_selection.cross_validation(model=model, x=x, y=y,
+                                                             generic_score=compute_class_imbalance_ratio)
+
+        self.assertTrue(score == {0: 1.6364, 1: 1.6364, 2: 1.7143, 3: 1.7143, 4: 1.7143,
+                                  5: 1.7143, 6: 1.7143, 7: 1.6667, 8: 1.6667, 9: 1.6667})
+
+
     def test_cross_validation_sklearn_pipeline(self):
 
         from sklearn.ensemble import RandomForestClassifier
