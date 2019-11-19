@@ -118,11 +118,30 @@ def generate_confusion_matrix(model_id: int, model_name: str,
     return conf_mat
 
 
-def plot_boxplots(score_list, labels, file_name, title, save = True):
-    # box plots
-    cv = np.stack(score_list, axis=1)
+def plot_boxplots(scores: List, labels: List[str], file_name: str, title: str, output_dir: str = "./figures") -> dict:
+    """
+    Generate and save boxplots.
+
+    Parameters
+    --------
+    :param scores: list of scores to compare
+    :param labels: name / identifier of each score list
+    :param file_name: output file name
+    :param title: figure title
+    :param output_dir: output directory
+    :return: boxplot object
+    """
+    file_name = os.path.join(output_dir, "box_plot_" + file_name + ".png")
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+
+    cv = np.stack(scores, axis=1)
+
     plt.figure()
     results = plt.boxplot(cv, notch=True, labels=labels)
-    if save: plt.savefig(file_name, dpi=800)
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(file_name, dpi=800)
     plt.show()
+
     return results
