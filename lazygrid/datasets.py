@@ -69,7 +69,8 @@ def load_npy_dataset(path_x: str, path_y: str, logger: Logger = None) -> (np.nda
     return x, y, n_classes
 
 
-def load_openml_dataset(data_id: int = None, dataset_name: str = None, logger: Logger = None) -> (np.ndarray, np.ndarray, int):
+def load_openml_dataset(data_id: int = None, dataset_name: str = None,
+                        logger: Logger = None) -> (np.ndarray, np.ndarray, int):
     """
     Load OpenML data set.
 
