@@ -92,6 +92,39 @@ class TestModelSelection(unittest.TestCase):
         self.assertTrue(conf_mat.matrix == {0: {0: 46, 1: 4},
                                             1: {0: 3, 1: 47}})
 
+    def test_cross_validation_RFE(self):
+
+        from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+        from sklearn.linear_model import RidgeClassifier, LogisticRegression
+        from sklearn.svm import SVC
+        from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.feature_selection import RFE
+        from sklearn.datasets import make_classification
+        import lazygrid as lg
+
+        x, y = make_classification(random_state=42)
+
+        standardizer = StandardScaler()
+        feature_selector = RFE(RandomForestClassifier(random_state=42), n_features_to_select=5)
+        clf1 = RandomForestClassifier(random_state=42)
+        clf2 = RidgeClassifier(random_state=42)
+        clf3 = SVC(random_state=42)
+        classifier = VotingClassifier(estimators=[("clf1", clf1), ("clf2", clf2), ("clf3", clf3)])
+        pipeline = Pipeline(steps=[("standardizer", standardizer),
+                                   ("feature_selector", feature_selector),
+                                   ("classifier", classifier)])
+
+        db_name = "database-test"
+        dataset_id = 1
+        dataset_name = "make-classification"
+
+        model = lg.wrapper.PipelineWrapper(pipeline, db_name=db_name, dataset_id=dataset_id, dataset_name=dataset_name)
+        score, fitted_models, y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
+
+        conf_mat = lg.plotter.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
+                                                        y_pred_list, y_true_list)
+
     def test_cross_validation_keras_model(self):
 
         import keras

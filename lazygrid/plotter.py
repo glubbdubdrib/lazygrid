@@ -143,7 +143,7 @@ def generate_confusion_matrix(model_id: int, model_name: str,
     if class_names:
         conf_mat.relabel(mapping=class_names)
 
-    conf_mat_pd = pd.DataFrame.from_dict(conf_mat.matrix)
+    conf_mat_pd = pd.DataFrame.from_dict(conf_mat.matrix).T
 
     # figure title and file name
     name = model_name + "_" + str(model_id)
