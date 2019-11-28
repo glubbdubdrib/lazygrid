@@ -16,7 +16,7 @@
 # limitations under the License.
 
 # Version of the lazygrid package
-__version__ = "3.0.1"
+__version__ = "4.0.0"
 
 from . import logger, datasets, database, statistics, neural_models, \
     grid, model_selection, plotter, wrapper

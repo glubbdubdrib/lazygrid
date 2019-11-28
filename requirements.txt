@@ -11,3 +11,4 @@ pycm==2.5
 seaborn
 Pygments
 codecov
+tqdm
