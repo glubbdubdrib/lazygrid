@@ -25,7 +25,7 @@ class TestDatabase(unittest.TestCase):
 
         db.close()
 
-        lg.drop_db(db_name="lazygrid-test")
+        lg.database.drop_db(db_name="lazygrid-test")
 
     def test_load_all_from_db(self):
 
@@ -42,7 +42,7 @@ class TestDatabase(unittest.TestCase):
                                           db_name=db_name, dataset_id=1,
                                           dataset_name="make-classification")
 
-        lg.cross_validation(model, x, y)
+        lg.model_selection.cross_validation(model, x, y)
 
         db_entries = lg.database.load_all_from_db(db_name)
 

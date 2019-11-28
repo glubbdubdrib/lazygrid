@@ -343,32 +343,6 @@ way could be skipping them as follows:
             pass
 
 
-
-Log your progress
-^^^^^^^^^^^^^^^^^
-
-If you need to log your progress, you can use the built-in logger as follows:
-
-.. code:: python
-
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.datasets import make_classification
-    import lazygrid as lg
-
-    logger = lg.file_logger.initialize_logging()
-    logger.info("Start using LazyGrid!")
-
-    logger.info("Loading data set...")
-    x, y = make_classification(random_state=42)
-
-    model = lg.wrapper.SklearnWrapper(RandomForestClassifier())
-    score, fitted_models, \
-        y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y,
-                                                                       logger=logger)
-
-    lg.file_logger.close_logging(logger)
-
-
 Plot your results
 ^^^^^^^^^^^^^^^^^
 

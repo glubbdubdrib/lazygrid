@@ -32,14 +32,6 @@ def initialize_logging(path: str = "./log", log_name: str = "default-logger",
     """
     Initialize log file handler.
 
-    Examples
-    --------
-    >>> import lazygrid as lg
-    >>>
-    >>> logger = lg.file_logger.initialize_logging()
-    >>> logger.info("Log something")
-    >>> lg.file_logger.close_logging(logger)
-
     Parameters
     ----------
     :param path: location where the log file will be saved
@@ -105,14 +97,6 @@ def initialize_logging(path: str = "./log", log_name: str = "default-logger",
 def close_logging(logger: logging.Logger):
     """
     Close log file handler.
-
-    Examples
-    --------
-    >>> import lazygrid as lg
-    >>>
-    >>> logger = lg.logger.initialize_logging()
-    >>> logger.info("Log something")
-    >>> lg.logger.close_logging(logger)
 
     Parameters
     ----------
