@@ -416,15 +416,8 @@ def compare_models(models: List[Wrapper],
 
     # Cross-validation
     i = 0
-    progress_bar = tqdm(models, leave=True, position=bar_position)
+    progress_bar = tqdm(models, desc="Comparing models", position=bar_position, leave=True)
     for model in progress_bar:
-
-        if model.models:
-            model_names = " + ".join([str(m.model_name) for m in model.models])
-            progress_bar.set_description("Running pipeline = %s" % model_names)
-        else:
-            progress_bar.set_description("Running model = %s" % model.model_name)
-        progress_bar.update()
 
         score, fitted_models, y_pred_list, y_true_list = cross_validation(model, x=x_train, y=y_train,
                                                                           x_val=x_val, y_val=y_val,
