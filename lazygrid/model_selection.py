@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import copy
+import time
 import traceback
 import numpy as np
 import pandas as pd
@@ -29,9 +30,11 @@ from statsmodels.stats.proportion import proportion_confint
 from sklearn.model_selection import StratifiedKFold
 from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
+from tqdm import tqdm
 from .statistics import find_best_solution, confidence_interval_mean_t
 from .wrapper import Wrapper
 from .plotter import generate_confusion_matrix
+from .logger import log_info
 
 
 def cross_validation(model: Wrapper,
@@ -39,8 +42,8 @@ def cross_validation(model: Wrapper,
                      x_val: np.ndarray = None, y_val: np.ndarray = None,
                      random_data: bool = True, random_model: bool = True,
                      seed: int = 42, n_splits: int = 10, score_fun: Callable = None,
-                     generic_score: Callable = None,
-                     logger: Logger = None) -> (dict, list, List[np.ndarray], List[np.ndarray]):
+                     generic_score: Callable = None, bar_position: int = 0,
+                     verbose: bool = True) -> (dict, list, List[np.ndarray], List[np.ndarray]):
     """
     Apply cross-validation on the given model.
 
@@ -83,7 +86,8 @@ def cross_validation(model: Wrapper,
     :param n_splits: number of cross-validation iterations
     :param score_fun: sklearn-like scoring function used to evaluate the model performance
     :param generic_score: generic score function
-    :param logger: object used to save progress
+    :param bar_position: progress bar position
+    :param verbose: print progress bars
     :return: cross-validation scores, fitted models, list of predicted labels and true labels
     """
 
@@ -112,10 +116,14 @@ def cross_validation(model: Wrapper,
         list_of_splits = [split for split in skf.split(x, y)]
 
     # Cross validation
-    if logger: logger.info("Start cross-validation")
-    for split_index in range(0, n_splits):
+    log_info.info("Start cross-validation")
+    splits = np.arange(0, n_splits)
+    if verbose:
+        splits = tqdm(np.arange(0, n_splits), desc="Cross-validation split", position=bar_position, leave=True)
 
-        if logger: logger.info("Split %d" % split_index)
+    for split_index in splits:
+
+        log_info.info("Split %d" % split_index)
 
         # randomize data if needed
         if random_data:
@@ -176,7 +184,7 @@ def cross_validation(model: Wrapper,
             score["train_cv"].append(score_train)
             score["val_cv"].append(score_val)
 
-            if logger: logger.info("\t%s: train %.4f - validation %.4f" % (str(score_fun), score_train, score_val))
+            log_info.info("\tScore: train %.4f - validation %.4f" % (score_train, score_val))
 
             # save trained model
             learner.save_model()
@@ -344,9 +352,9 @@ def compare_models(models: List[Wrapper],
                    generic_score: Callable = None,
                    test: Callable = mannwhitneyu, alpha: int = 0.05, cl: float = 0.05,
                    experiment_name: str = "model_comparison", output_dir: str = "./output",
-                   verbose: bool = False, logger: Logger = None,
-                   class_names: dict = None, font_scale: float = 1,
-                   encoding: str = "categorical") -> pd.DataFrame:
+                   verbose: bool = False, class_names: dict = None, font_scale: float = 1,
+                   encoding: str = "categorical",
+                   bar_position: int = 0) -> pd.DataFrame:
     """
     Compare machine learning models' performance on the provided data set, using
     cross-validation and statistical hypothesis tests.
@@ -394,10 +402,10 @@ def compare_models(models: List[Wrapper],
     :param experiment_name: name of the current experiment
     :param output_dir: path to the folder where the results will be saved (as csv file)
     :param verbose: if True enables plots
-    :param logger: object used to save progress
     :param class_names: dictionary of label names like {0: "Class 1", 1: "Class 2"}
     :param font_scale: font size of figures
     :param encoding: label encoding; accepted values are: "categorical" or "one-hot"
+    :param bar_position: progress bar position
     :return: Pandas DataFrame containing a summary of the results
     """
 
@@ -408,7 +416,15 @@ def compare_models(models: List[Wrapper],
 
     # Cross-validation
     i = 0
-    for model in models:
+    progress_bar = tqdm(models, leave=True, position=bar_position)
+    for model in progress_bar:
+
+        if model.models:
+            model_names = " + ".join([str(m.model_name) for m in model.models])
+            progress_bar.set_description("Running pipeline = %s" % model_names)
+        else:
+            progress_bar.set_description("Running model = %s" % model.model_name)
+        progress_bar.update()
 
         score, fitted_models, y_pred_list, y_true_list = cross_validation(model, x=x_train, y=y_train,
                                                                           x_val=x_val, y_val=y_val,
@@ -417,7 +433,8 @@ def compare_models(models: List[Wrapper],
                                                                           seed=seed, n_splits=n_splits,
                                                                           score_fun=score_fun,
                                                                           generic_score=generic_score,
-                                                                          logger=logger)
+                                                                          bar_position=bar_position+1,
+                                                                          verbose=verbose)
 
         conf_mat = generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
                                              y_pred_list, y_true_list, class_names,

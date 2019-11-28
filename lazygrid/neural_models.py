@@ -14,6 +14,7 @@
 #
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Collection
 
 from keras import Sequential
 from keras.layers import Dense
@@ -100,7 +101,7 @@ def reset_weights(model: Sequential, seed: int = 42):
 
 
 def keras_classifier(layers: list, input_shape: tuple, n_classes: int,
-                     verbose: bool = True, metrics: list = ["accuracy"],
+                     verbose: bool = True, metrics: Collection = ["accuracy"],
                      model_name: str = "MyKerasNet", lr: float = 0.1) -> Sequential:
     """
     Generate keras feed-forward neural model for classification.

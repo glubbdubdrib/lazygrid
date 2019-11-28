@@ -19,6 +19,7 @@ import os
 import sqlite3
 from typing import Optional, Any, Iterable
 import numpy as np
+from .logger import log_warn
 
 
 def save_to_db(db_name: str, entry: Iterable, query: Iterable,
@@ -68,7 +69,7 @@ def save_to_db(db_name: str, entry: Iterable, query: Iterable,
     try:
         cursor.execute(insert_stmt, entry)
     except sqlite3.IntegrityError:
-        # print(traceback.format_exc())
+        log_warn.exception("Exception occurred")
         pass
     result = cursor.execute(query_stmt, query).fetchone()
 
@@ -138,7 +139,7 @@ def load_all_from_db(db_name: str, table_name: str = "MODEL") -> Optional[Any]:
     >>> model = lg.wrapper.SklearnWrapper(RidgeClassifier(),
     ...                                   db_name=db_name, dataset_id=1,
     ...                                   dataset_name="make-classification")
-    >>> scores, _, _, _ = lg.cross_validation(model, x, y)
+    >>> scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
     >>>
     >>> db_entries = lg.database.load_all_from_db(db_name)
 

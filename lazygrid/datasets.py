@@ -17,6 +17,7 @@
 
 import datetime
 import glob
+import logging
 import traceback
 from difflib import SequenceMatcher
 import numpy as np
@@ -28,9 +29,10 @@ from logging import Logger
 from sklearn.impute import SimpleImputer
 from sklearn.datasets import fetch_openml
 from sklearn.preprocessing import LabelEncoder
+from .logger import log_warn, log_info
 
 
-def load_npy_dataset(path_x: str, path_y: str, logger: Logger = None) -> (np.ndarray, np.ndarray, int):
+def load_npy_dataset(path_x: str, path_y: str) -> (np.ndarray, np.ndarray, int):
     """
     Load npy data set.
 
@@ -53,7 +55,6 @@ def load_npy_dataset(path_x: str, path_y: str, logger: Logger = None) -> (np.nda
     --------
     :param path_x: path to data matrix
     :param path_y: path to data labels
-    :param logger: log file handler
     :return: data matrix, data labels, and number of classes
     """
 
@@ -63,14 +64,13 @@ def load_npy_dataset(path_x: str, path_y: str, logger: Logger = None) -> (np.nda
         n_classes = len(np.unique(y))
 
     except FileNotFoundError:
-        if logger: logger.info(traceback.format_exc())
+        log_warn.exception("Exception occurred")
         return None, None, None
 
     return x, y, n_classes
 
 
-def load_openml_dataset(data_id: int = None, dataset_name: str = None,
-                        logger: Logger = None) -> (np.ndarray, np.ndarray, int):
+def load_openml_dataset(data_id: int = None, dataset_name: str = None) -> (np.ndarray, np.ndarray, int):
     """
     Load OpenML data set.
 
@@ -87,7 +87,6 @@ def load_openml_dataset(data_id: int = None, dataset_name: str = None,
     --------
     :param data_id: data set identifier
     :param dataset_name: data set name
-    :param logger: log file handler
     :return: data matrix, data labels, and number of classes
     """
 
@@ -113,7 +112,7 @@ def load_openml_dataset(data_id: int = None, dataset_name: str = None,
         return x, y, n_classes
 
     except Exception:
-        if logger: logger.info(traceback.format_exc())
+        log_warn.exception("Exception occurred")
         return [None, None, None]
 
 
@@ -143,7 +142,7 @@ def _is_correct_task(task: str, db: dict) -> bool:
 
 
 def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str = "classification",
-                   max_samples: int = np.inf, max_features: int = np.inf, logger: Logger = None) -> pd.DataFrame:
+                   max_samples: int = np.inf, max_features: int = np.inf) -> pd.DataFrame:
     """
     Load all OpenML data sets compatible with the requirements and save a .csv file as a reference.
 
@@ -165,7 +164,6 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
     :param task: classification or regression
     :param max_samples: maximum number of samples required for each data set
     :param max_features: maximum number of features required for each data set
-    :param logger: log file handler
     :return: dataframe containing the information required to load the latest version of each data set
     """
 
@@ -174,7 +172,7 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
     for key, db in openml.datasets.list_datasets().items():
 
         try:
-            if logger: logger.info("Loading data set: %s, ID: %d..." % (db['name'], db['did']))
+            log_info.info("Loading data set: %s, ID: %d..." % (db['name'], db['did']))
 
             if db['NumberOfClasses'] > min_classes and _is_correct_task(task, db) and \
                     db['NumberOfInstances'] < max_samples and db['NumberOfFeatures'] < max_features and \
@@ -194,14 +192,14 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
                 data[db['name']]['n_classes'] = db['NumberOfClasses']
 
         except (IndexError, ValueError, KeyError):
-            if logger: logger.info("Error loading data set: %s, ID: %d!" % (db['name'], db['did']))
-            if logger: logger.info(traceback.format_exc())
+            log_info.info("Error loading data set: %s, ID: %d!" % (db['name'], db['did']))
+            log_info.info(traceback.format_exc())
 
     data = pd.DataFrame(data).transpose()
     try:
         data = data.sort_values(by=["n_samples", "n_features", "n_classes"]).astype('int64')
     except KeyError:
-        if logger: logger.info(traceback.format_exc())
+        log_info.info(traceback.format_exc())
         return None
 
     if not os.path.isdir(output_dir):
@@ -214,7 +212,7 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
 
 def fetch_datasets(output_dir: str = "./data", update_data: bool = False,
                    min_classes: int = 0, task: str = "classification",
-                   max_samples: int = np.inf, max_features: int = np.inf, logger: Logger = None) -> pd.DataFrame:
+                   max_samples: int = np.inf, max_features: int = np.inf) -> pd.DataFrame:
     """
     Load OpenML data sets compatible with the requirements.
 
@@ -240,7 +238,6 @@ def fetch_datasets(output_dir: str = "./data", update_data: bool = False,
     :param task: classification or regression
     :param max_samples: maximum number of samples required for each data set
     :param max_features: maximum number of features required for each data set
-    :param logger: log file handler
     :return: dataframe containing the information required to load the latest version of each data set
     """
 
@@ -249,7 +246,7 @@ def fetch_datasets(output_dir: str = "./data", update_data: bool = False,
 
     # download (again) new data if necessary
     if not os.path.isdir(output_dir) or not file_list or update_data:
-        data = _load_datasets(output_dir, min_classes, task, max_samples, max_features, logger)
+        data = _load_datasets(output_dir, min_classes, task, max_samples, max_features)
 
         # delete previous data files
         file_list.sort()
@@ -263,6 +260,7 @@ def fetch_datasets(output_dir: str = "./data", update_data: bool = False,
         data = pd.read_csv(file_list[-1], index_col=0).astype("int64")
 
     else:
+        log_warn.exception("Exception occurred")
         raise ValueError("Data not found")
 
     return data

@@ -21,7 +21,14 @@ import os
 from logging.handlers import RotatingFileHandler
 
 
-def initialize_logging(path: str = "./log", log_name: str = "default-logger", date: bool = True) -> logging.Logger:
+log_info = logging.getLogger("lazygrid-debug")
+log_info.addHandler(logging.NullHandler())
+log_warn = logging.getLogger("lazygrid-warning")
+log_warn.addHandler(logging.NullHandler())
+
+
+def initialize_logging(path: str = "./log", log_name: str = "default-logger",
+                       date: bool = True, output_console: bool = False) -> logging.Logger:
     """
     Initialize log file handler.
 
@@ -38,12 +45,13 @@ def initialize_logging(path: str = "./log", log_name: str = "default-logger", da
     :param path: location where the log file will be saved
     :param log_name: log file name
     :param date: if True the current datetime will be put before the log file name
+    :param output_console: if True it prints log messages to the default console
     :return: log file handler
     """
 
     if date:
         log_name = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "-" + log_name
-    log_name = os.path.join(path, log_name + ".log")
+    log_name = os.path.join(path, log_name)
 
     # create log folder if it does not exists
     if not os.path.isdir(path):
@@ -53,33 +61,45 @@ def initialize_logging(path: str = "./log", log_name: str = "default-logger", da
     if os.path.exists(log_name):
         os.remove(log_name)
 
-    # create an additional logger
-    logger = logging.getLogger(log_name)
+    # log file format
+    formatter = logging.Formatter("[%(levelname)s %(asctime)s] %(message)s", "%Y-%m-%d %H:%M:%S")
 
-    # format log file
-    logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter("[%(levelname)s %(asctime)s] %(message)s",
-                                  "%Y-%m-%d %H:%M:%S")
+    # create logger instances
+    log_info.setLevel(logging.DEBUG)
+    log_warn.setLevel(logging.WARNING)
 
     # the 'RotatingFileHandler' object implements a log file that is automatically limited in size
-    fh = RotatingFileHandler(log_name,
-                             mode='a',
-                             maxBytes=100*1024*1024,
-                             backupCount=2,
-                             encoding=None,
-                             delay=0)
-    fh.setLevel(logging.DEBUG)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
+    # debug log handler
+    fh_info = RotatingFileHandler(log_name + "-debug.log",
+                                  mode='a',
+                                  maxBytes=100 * 1024 * 1024,
+                                  backupCount=2,
+                                  encoding=None,
+                                  delay=0)
+    fh_info.setLevel(logging.DEBUG)
+    fh_info.setFormatter(formatter)
+    log_info.addHandler(fh_info)
 
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
+    # warning log handler
+    fh_warning = RotatingFileHandler(log_name + "-warning.log",
+                                     mode='a',
+                                     maxBytes=100 * 1024 * 1024,
+                                     backupCount=2,
+                                     encoding=None,
+                                     delay=0)
+    fh_warning.setLevel(logging.WARNING)
+    fh_warning.setFormatter(formatter)
+    log_warn.addHandler(fh_warning)
 
-    logger.info("Starting " + log_name + "!")
+    if output_console:
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        ch.setFormatter(formatter)
+        log_info.addHandler(ch)
 
-    return logger
+    log_info.debug("Starting " + log_name + "!")
+
+    return log_info
 
 
 def close_logging(logger: logging.Logger):
