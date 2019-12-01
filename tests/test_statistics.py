@@ -72,7 +72,7 @@ class TestStatistics(unittest.TestCase):
 
         score_list = []
         for pipeline in pipelines:
-            model = lg.wrapper.PipelineWrapper(pipeline, db_name="db-test",
+            model = lg.wrapper.PipelineWrapper(pipeline, db_name="./database/db-test.sqlite",
                                                dataset_id=10, dataset_name="digits")
             scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
             score_list.append(scores["val_cv"])

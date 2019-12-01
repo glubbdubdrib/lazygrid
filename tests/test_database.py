@@ -9,13 +9,11 @@ class TestDatabase(unittest.TestCase):
         import os
         import lazygrid as lg
 
-        db_dir = "./database"
-        db_name = "lazygrid-test"
-        db_path = os.path.join(db_dir, db_name)
+        db_name = "./database/lazygrid-test.sqlite"
 
         lg.database.drop_db(db_name=db_name)
 
-        db = sqlite3.connect(db_path)
+        db = sqlite3.connect(db_name)
         cursor = db.cursor()
 
         stmt = '''SELECT name FROM sqlite_master WHERE type='table' AND name=? '''
@@ -25,7 +23,7 @@ class TestDatabase(unittest.TestCase):
 
         db.close()
 
-        lg.database.drop_db(db_name="lazygrid-test")
+        lg.database.drop_db(db_name=db_name)
 
     def test_load_all_from_db(self):
 
@@ -33,7 +31,7 @@ class TestDatabase(unittest.TestCase):
         from sklearn.datasets import make_classification
         import lazygrid as lg
 
-        db_name = "lazygrid-db-test"
+        db_name = "./database/lazygrid-db-test.sqlite"
         lg.database.drop_db(db_name)
 
         x, y = make_classification(random_state=42)
@@ -62,7 +60,7 @@ class TestDatabase(unittest.TestCase):
 
         import lazygrid as lg
 
-        db_name = "lazygrid-db-test"
+        db_name = "./database/lazygrid-db-test.sqlite"
         lg.database.drop_db(db_name)
 
         create_stmt = '''CREATE TABLE IF NOT EXISTS MY_TABLE(

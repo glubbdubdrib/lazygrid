@@ -37,7 +37,7 @@ def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> List:
     >>> confidence_level = 0.05
     >>>
     >>> lg.statistics.confidence_interval_mean_t(x, confidence_level)
-    (-0.13829578539063092, 1.9305402321856557)
+    [-0.13829578539063092, 1]
 
 
     Notes

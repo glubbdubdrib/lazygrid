@@ -74,7 +74,7 @@ class TestModelSelection(unittest.TestCase):
                                    ("feature_selector", feature_selector),
                                    ("classifier", classifier)])
 
-        db_name = "database-test"
+        db_name = "./database/database-test.sqlite"
         dataset_id = 1
         dataset_name = "make-classification"
 
@@ -115,7 +115,7 @@ class TestModelSelection(unittest.TestCase):
                                    ("feature_selector", feature_selector),
                                    ("classifier", classifier)])
 
-        db_name = "database-test"
+        db_name = "./database/database-test.sqlite"
         dataset_id = 1
         dataset_name = "make-classification"
 
@@ -192,7 +192,7 @@ class TestModelSelection(unittest.TestCase):
             y_pred = np.argmax(y_pred, axis=1)
             return f1_score(y, y_pred, average="weighted")
 
-        db_name = "database-test"
+        db_name = "./database/database-test-keras.sqlite"
         dataset_id = 2
         dataset_name = "digits"
 
@@ -213,7 +213,7 @@ class TestModelSelection(unittest.TestCase):
             self.assertTrue(isinstance(fitted_model, lg.wrapper.KerasWrapper))
 
         # check confusion matrix
-        self.assertTrue(conf_mat.matrix == {0: {0: 54, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 1: {0: 0, 1: 37, 2: 0, 3: 2, 4: 0, 5: 0, 6: 0, 7: 0, 8: 14, 9: 4}, 2: {0: 1, 1: 0, 2: 53, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 3: {0: 0, 1: 0, 2: 0, 3: 55, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2, 9: 0}, 4: {0: 0, 1: 0, 2: 0, 3: 0, 4: 57, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 5: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 54, 6: 0, 7: 0, 8: 0, 9: 3}, 6: {0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 0, 6: 55, 7: 0, 8: 1, 9: 0}, 7: {0: 1, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 51, 8: 0, 9: 2}, 8: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0, 7: 0, 8: 52, 9: 1}, 9: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 54}})
+        self.assertTrue(conf_mat.matrix == {0: {0: 54, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 1: {0: 0, 1: 37, 2: 0, 3: 2, 4: 0, 5: 0, 6: 0, 7: 0, 8: 14, 9: 4}, 2: {0: 1, 1: 0, 2: 52, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 1, 9: 0}, 3: {0: 0, 1: 0, 2: 0, 3: 55, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2, 9: 0}, 4: {0: 0, 1: 0, 2: 0, 3: 0, 4: 57, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}, 5: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 54, 6: 0, 7: 0, 8: 0, 9: 3}, 6: {0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 0, 6: 55, 7: 0, 8: 1, 9: 0}, 7: {0: 1, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 51, 8: 0, 9: 2}, 8: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0, 7: 0, 8: 52, 9: 1}, 9: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 54}})
         
     def test_compare_models(self):
 
@@ -225,7 +225,7 @@ class TestModelSelection(unittest.TestCase):
 
         dataset_id = 1
         dataset_name = "make-classification"
-        db_name = "lazygrid-test"
+        db_name = "./database/lazygrid-test.sqlite"
 
         x, y = make_classification(random_state=42)
 
