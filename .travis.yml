@@ -22,7 +22,7 @@ jobs:
         - python -m pip install --upgrade pip
         - pip3 install --upgrade pip  # all three OSes agree about 'pip3'
         - pip3 install -r requirements.txt
-      env: PATH=/c/Python36:/c/Python36/Scripts:$PATH
+      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
 
 install:
   - pip3 install .
