@@ -16,7 +16,7 @@
 # limitations under the License.
 
 # Version of the lazygrid package
-__version__ = "4.0.0"
+__version__ = "4.1.0"
 
 import sys
 import os
