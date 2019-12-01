@@ -349,7 +349,7 @@ fetches the model that has already been fitted from the database.
     models = lg.grid.generate_grid(elements)
 
     for model in models:
-        model = lg.wrapper.SklearnWrapper(model, dataset_id=1, db_name="sklearn-db",
+        model = lg.wrapper.SklearnWrapper(model, dataset_id=1, db_name="./database/sklearn-db.sqlite",
                                   dataset_name="make-classification")
         score, fitted_models, \
             y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
@@ -483,32 +483,6 @@ way could be skipping them as follows:
             pass
 
 
-
-Log your progress
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you need to log your progress, you can use the built-in logger as follows:
-
-.. code:: python
-
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.datasets import make_classification
-    import lazygrid as lg
-
-    logger = lg.file_logger.initialize_logging()
-    logger.info("Start using LazyGrid!")
-
-    logger.info("Loading data set...")
-    x, y = make_classification(random_state=42)
-
-    model = lg.wrapper.SklearnWrapper(RandomForestClassifier())
-    score, fitted_models, \
-        y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y,
-                                                                       logger=logger)
-
-    lg.file_logger.close_logging(logger)
-
-
 Plot your results
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -528,7 +502,7 @@ The following lines conclude the `keras example <#grid-search>`__:
         y_pred = np.argmax(y_pred, axis=1)
         return f1_score(y, y_pred, average="weighted")
 
-    db_name = "database"
+    db_name = "./database/database.sqlite"
     dataset_id = 2
     dataset_name = "digits"
 

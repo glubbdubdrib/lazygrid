@@ -37,9 +37,11 @@ def save_to_db(db_name: str, entry: Iterable, query: Iterable,
     >>> entry = model.get_entry()
     >>> query = model.get_query()
     >>>
-    >>> query_result = lg.database.save_to_db(model.db_name, entry, query)
+    >>> query_result = lg.database.save_to_db(model.db_name, entry, query, lg.wrapper.create_model_stmt,
+    ...                                       lg.wrapper.insert_model_stmt, lg.wrapper.query_model_stmt)
     >>>
-    >>> db_entry = lg.database.load_from_db(model.db_name, query)
+    >>> db_entry = lg.database.load_from_db(model.db_name, query,
+    ...                                     lg.wrapper.create_model_stmt, lg.wrapper.query_model_stmt)
 
     Parameters
     --------
@@ -57,10 +59,9 @@ def save_to_db(db_name: str, entry: Iterable, query: Iterable,
     sqlite3.register_adapter(np.int32, lambda val: int(val))
 
     # Create database if does not exists
-    db_dir = "./database"
-    if not os.path.isdir(db_dir):
-        os.mkdir(db_dir)
-    db_name = os.path.join(db_dir, db_name + ".sqlite")
+    root_dir = os.path.dirname(db_name)
+    if not os.path.isdir(root_dir) and root_dir:
+        os.makedirs(root_dir)
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
     db.execute(create_stmt)
@@ -93,9 +94,11 @@ def load_from_db(db_name: str, query: Iterable, create_stmt: str, query_stmt: st
     >>> entry = model.get_entry()
     >>> query = model.get_query()
     >>>
-    >>> query_result = lg.database.save_to_db(model.db_name, entry, query)
+    >>> query_result = lg.database.save_to_db(model.db_name, entry, query, lg.wrapper.create_model_stmt,
+    ...                                       lg.wrapper.insert_model_stmt, lg.wrapper.query_model_stmt)
     >>>
-    >>> db_entry = lg.database.load_from_db(model.db_name, query)
+    >>> db_entry = lg.database.load_from_db(model.db_name, query,
+    ...                                     lg.wrapper.create_model_stmt, lg.wrapper.query_model_stmt)
 
     Parameters
     --------
@@ -111,10 +114,9 @@ def load_from_db(db_name: str, query: Iterable, create_stmt: str, query_stmt: st
     sqlite3.register_adapter(np.int32, lambda val: int(val))
 
     # Connect to database if it exists
-    db_dir = "./database"
-    if not os.path.isdir(db_dir):
-        os.mkdir(db_dir)
-    db_name = os.path.join(db_dir, db_name + ".sqlite")
+    root_dir = os.path.dirname(db_name)
+    if not os.path.isdir(root_dir) and root_dir:
+        os.makedirs(root_dir)
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
     db.execute(create_stmt)
@@ -137,11 +139,11 @@ def load_all_from_db(db_name: str, table_name: str = "MODEL") -> Optional[Any]:
     >>>
     >>> x, y = make_classification(random_state=42)
     >>> model = lg.wrapper.SklearnWrapper(RidgeClassifier(),
-    ...                                   db_name=db_name, dataset_id=1,
+    ...                                   db_name="my-database.sqlite", dataset_id=1,
     ...                                   dataset_name="make-classification")
     >>> scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
     >>>
-    >>> db_entries = lg.database.load_all_from_db(db_name)
+    >>> db_entries = lg.database.load_all_from_db(db_name="my-database.sqlite")
 
     Parameters
     --------
@@ -155,10 +157,9 @@ def load_all_from_db(db_name: str, table_name: str = "MODEL") -> Optional[Any]:
     sqlite3.register_adapter(np.int32, lambda val: int(val))
 
     # Connect to database if it exists
-    db_dir = "./database"
-    if not os.path.isdir(db_dir):
-        os.mkdir(db_dir)
-    db_name = os.path.join(db_dir, db_name + ".sqlite")
+    root_dir = os.path.dirname(db_name)
+    if not os.path.isdir(root_dir) and root_dir:
+        os.makedirs(root_dir)
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
 
@@ -183,7 +184,7 @@ def drop_db(db_name: str) -> None:
     --------
     >>> import lazygrid as lg
     >>>
-    >>> lg.database.drop_db(db_name="my-database")
+    >>> lg.database.drop_db(db_name="my-database.sqlite")
 
     Parameters
     --------
@@ -191,11 +192,9 @@ def drop_db(db_name: str) -> None:
     :return: None
     """
 
-    db_dir = "./database"
-    if not os.path.isdir(db_dir):
-        os.mkdir(db_dir)
-    db_name = os.path.join(db_dir, db_name + ".sqlite")
-
+    root_dir = os.path.dirname(db_name)
+    if not os.path.isdir(root_dir) and root_dir:
+        os.makedirs(root_dir)
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
 

@@ -378,10 +378,10 @@ def compare_models(models: List[Wrapper],
     >>>
     >>> pd.set_option('display.width', 9)
     >>> results[['model_name', 'module', 'version', 'ci-l-bound', 'ci-u-bound', 'pvalue']] #doctest: +ELLIPSIS
-                   model_name   module version  ci-l-bound  ci-u-bound    pvalue
-    0      LogisticRegression  sklearn  0.21.2    0.424323    0.585103  0.000123
-    1  RandomForestClassifier  sklearn  0.21.2    0.851488    1.000000  0.829392
-    2         RidgeClassifier  sklearn  0.21.2    0.896696    1.000000  1.000000
+                   model_name   module version  ci-l-bound ci-u-bound    pvalue
+    0      LogisticRegression  sklearn  0.21.3    0.909982          1  1.000000
+    1  RandomForestClassifier  sklearn  0.21.3    0.854219          1  0.562013
+    2         RidgeClassifier  sklearn  0.21.3    0.899417          1  0.686540
 
     Parameters
     --------

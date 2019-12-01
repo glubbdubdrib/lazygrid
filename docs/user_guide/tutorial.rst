@@ -209,8 +209,9 @@ fetches the model that has already been fitted from the database.
     models = lg.grid.generate_grid(elements)
 
     for model in models:
-        model = lg.wrapper.SklearnWrapper(model, dataset_id=1, db_name="sklearn-db",
-                                  dataset_name="make-classification")
+        model = lg.wrapper.SklearnWrapper(model, dataset_id=1,
+                                          db_name="./database/sklearn-db.sqlite",
+                                          dataset_name="make-classification")
         score, fitted_models, \
             y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
 
@@ -362,7 +363,7 @@ The following lines conclude the `keras example <#grid-search>`__:
         y_pred = np.argmax(y_pred, axis=1)
         return f1_score(y, y_pred, average="weighted")
 
-    db_name = "database"
+    db_name = "./database/database.sqlite"
     dataset_id = 2
     dataset_name = "digits"
 

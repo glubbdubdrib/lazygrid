@@ -47,7 +47,7 @@ def reset_weights(model: Sequential, seed: int = 42):
     >>> sess = tf.Session(graph=tf.get_default_graph(), config=config)
     >>> K.set_session(sess)
     >>>
-    >>> keras_model = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>> keras_model = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2, verbose=False)
     >>> lg.neural_models.reset_weights(keras_model, seed=seed)
 
     Parameters
@@ -111,7 +111,7 @@ def keras_classifier(layers: list, input_shape: tuple, n_classes: int,
     >>> from keras import Sequential
     >>> import lazygrid as lg
     >>>
-    >>> keras_model = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>> keras_model = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2, verbose=False)
 
     Parameters
     --------

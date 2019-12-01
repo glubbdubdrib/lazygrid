@@ -39,18 +39,21 @@ class Wrapper(ABC):
     Examples
     --------
     >>> from lazygrid.wrapper import Wrapper
+    >>> from sklearn.linear_model import LogisticRegression
     >>>
     >>>
     >>> class CustomWrapper(Wrapper):
+    ...
+    ...     def __init__(self, **kwargs):
+    ...         Wrapper.__init__(self, **kwargs)
+    ...
+    ...     def set_random_seed(self, seed, split_index, random_model):
+    ...         pass
+    ...
+    ...     def parse_parameters(self) -> str:
+    ...         pass
     >>>
-    >>>     def __init__(self, **kwargs):
-    >>>         Wrapper.__init__(self, **kwargs)
-    >>>
-    >>>     def set_random_seed(self, seed, split_index, random_model):
-    >>>         pass
-    >>>
-    >>>     def parse_parameters(self) -> str:
-    >>>         pass
+    >>> my_wrapped_model = CustomWrapper(model=LogisticRegression())
     """
 
     def __init__(self, model: Any, dataset_id=None, dataset_name=None, db_name=None,
@@ -80,7 +83,7 @@ class Wrapper(ABC):
             dataset_id = 1
             dataset_name = "default-dataset"
         if not db_name:
-            db_name = "default-db"
+            db_name = "./database/default-db.sqlite"
             drop_db(db_name)
 
         self.model_id = model_id
@@ -358,8 +361,8 @@ class PipelineWrapper(Wrapper):
     >>> feature_selector = SelectKBest(score_func=mutual_info_classif, k=2)
     >>> classifier = RandomForestClassifier(random_state=42)
     >>> pipeline = Pipeline(steps=[("standardizer", standardizer),
-    >>>                            ("feature_selector", feature_selector),
-    >>>                            ("classifier", classifier)])
+    ...                            ("feature_selector", feature_selector),
+    ...                            ("classifier", classifier)])
     >>>
     >>> lg_model = lg.wrapper.PipelineWrapper(pipeline)
     """
@@ -522,7 +525,7 @@ class KerasWrapper(Wrapper):
     --------
     >>> import lazygrid as lg
     >>>
-    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2, verbose=False)
     >>> lg_model = lg.wrapper.KerasWrapper(keras_nn)
     """
 
@@ -694,7 +697,7 @@ def parse_neural_model(model: Model) -> str:
     --------
     >>> import lazygrid as lg
     >>>
-    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2, verbose=False)
     >>> parameters = lg.wrapper.parse_neural_model(keras_nn)
 
     Parameters
@@ -758,12 +761,13 @@ def corner_cases(model: Any) -> Any:
     Examples
     --------
     >>> import lazygrid as lg
-    >>> from sklearn.ensemble import RandomForest
+    >>> from sklearn.ensemble import RandomForestClassifier
     >>>
     >>> model_1 = lg.wrapper.corner_cases(RandomForestClassifier())
     >>> model_2 = lg.wrapper.corner_cases(RandomForestClassifier(n_estimators=10))
     >>>
     >>> model_1.n_estimators == model_2.n_estimators
+    True
 
     Parameters
     --------
@@ -811,12 +815,12 @@ def load_neural_model(model_bytes) -> Any:
     --------
     >>> import lazygrid as lg
     >>>
-    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2, verbose=False)
     >>>
     >>> tmp_file = "nn_binary.h5"
     >>> keras_nn.save(tmp_file)
     >>> with open(tmp_file, 'rb') as input_file:
-    >>>     keras_nn_binary = input_file.read()
+    ...     keras_nn_binary = input_file.read()
     >>>
     >>> keras_nn_recovered = lg.wrapper.load_neural_model(keras_nn_binary)
 
@@ -839,7 +843,7 @@ def save_neural_model(model) -> Any:
     --------
     >>> import lazygrid as lg
     >>>
-    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2)
+    >>> keras_nn = lg.neural_models.keras_classifier(layers=[10, 5], input_shape=(20,), n_classes=2, verbose=False)
     >>>
     >>> keras_nn_binary = lg.wrapper.save_neural_model(keras_nn)
 

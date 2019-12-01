@@ -64,21 +64,6 @@ def one_hot_list_to_categorical(y_one_hot_list: List[np.ndarray]) -> np.ndarray:
     """
     Transform list of one-hot-encoded labels into a categorical array of labels.
 
-    Examples
-    --------
-    >>> from sklearn.ensemble import RandomForestClassifier
-    >>> from sklearn.datasets import make_classification
-    >>> import lazygrid as lg
-    >>>
-    >>> x, y = make_classification(random_state=42)
-    >>>
-    >>> classifier = RandomForestClassifier(random_state=42)
-    >>>
-    >>> model = lg.wrapper.SklearnWrapper(classifier)
-    >>> score, fitted_models, y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
-    >>>
-    >>> y_true_categorical = lg.plotter.one_hot_list_to_categorical(y_true_list)
-
     Parameters
     --------
     :param y_one_hot_list: one-hot-encoded list of labels
@@ -180,13 +165,13 @@ def plot_boxplots(scores: List, labels: List[str], file_name: str, title: str, o
     >>> score_list = []
     >>> labels = []
     >>> for model in models:
-    >>>     scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
-    >>>     score_list.append(scores["val_cv"])
-    >>>     labels.append(model.model_name)
-    >>>
+    ...     scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
+    ...     score_list.append(scores["val_cv"])
+    ...     labels.append(model.model_name)
+    ...
     >>> file_name = "val_scores"
     >>> title = "Model comparison"
-    >>> lg.plotter.plot_boxplots(score_list, labels, file_name, title)
+    >>> box_plot_object = lg.plotter.plot_boxplots(score_list, labels, file_name, title)
 
     Parameters
     --------
