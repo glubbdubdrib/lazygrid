@@ -18,7 +18,6 @@
 import functools
 import traceback
 from typing import Tuple, List
-from itertools import product
 import copy
 from keras import Sequential, Model
 from keras.wrappers.scikit_learn import KerasClassifier
@@ -27,9 +26,17 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.preprocessing import RobustScaler, StandardScaler
+from itertools import chain, combinations, product
+from .lazy_estimator import LazyPipeline
 
 
-def generate_grid(elements: list) -> list:
+def _powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+
+
+def generate_grid(elements: list, lazy: bool = True, **kwargs) -> list:
     """
     Generate all possible combinations of sklearn Pipelines given the input steps.
 
@@ -60,16 +67,26 @@ def generate_grid(elements: list) -> list:
     assert all([isinstance(step, list) for step in elements])
 
     # generate all possible combinations of steps
-    pipelines = []
+    subsets = []
     for step_list in product(*elements):
+        for steps in _powerset(step_list):
+            if len(steps) > 0:
+                if steps[-1] == step_list[-1]:
+                    subsets.append(steps)
 
+    pipelines = []
+    for subset in subsets:
         # create list of tuples (step_name, step_object) to feed sklearn Pipeline
         i = 0
         steps = []
-        for step in step_list:
+        for step in subset:
             steps.append(("step_" + str(i), copy.deepcopy(step)))
             i += 1
-        pipeline = Pipeline(steps)
+
+        if lazy:
+            pipeline = LazyPipeline(steps, **kwargs)
+        else:
+            pipeline = Pipeline(steps, **kwargs)
 
         pipelines.append(pipeline)
 
