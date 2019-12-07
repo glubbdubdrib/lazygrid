@@ -9,8 +9,7 @@ class TestGrid(unittest.TestCase):
         from sklearn.svm import SVC
         from sklearn.feature_selection import SelectKBest, f_classif
         from sklearn.preprocessing import RobustScaler, StandardScaler
-        from sklearn.pipeline import Pipeline
-        import lazygrid as lg
+        from lazygrid import grid, lazy_estimator
 
         preprocessors = [StandardScaler(), RobustScaler()]
         feature_selectors = [SelectKBest(score_func=f_classif, k=1), SelectKBest(score_func=f_classif, k=2)]
@@ -18,10 +17,10 @@ class TestGrid(unittest.TestCase):
 
         elements = [preprocessors, feature_selectors, classifiers]
 
-        pipelines = lg.grid.generate_grid(elements)
+        pipelines = grid.generate_grid(elements)
 
         for pipeline in pipelines:
-            self.assertTrue(isinstance(pipeline, Pipeline))
+            self.assertTrue(isinstance(pipeline, lazy_estimator.LazyPipeline))
     
     def test_generate_grid_search(self):
         

@@ -48,7 +48,10 @@ class TestDatasets(unittest.TestCase):
         import lazygrid as lg
         import os
 
-        path_x, path_y = "x.npy", "y.npy"
+        if not os.path.isdir("./data/"):
+            os.makedirs("./data/")
+
+        path_x, path_y = "./data/x.npy", "./data/y.npy"
         if os.path.isfile(path_x):
             os.remove(path_x)
         if os.path.isfile(path_y):

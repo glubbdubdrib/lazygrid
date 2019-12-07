@@ -19,22 +19,24 @@ class TestPlotter(unittest.TestCase):
         from sklearn.linear_model import LogisticRegression, RidgeClassifier
         from sklearn.ensemble import RandomForestClassifier
         from sklearn.datasets import make_classification
+        from sklearn.model_selection import cross_validate
         import lazygrid as lg
 
-        x, y = make_classification(random_state=42)
+        lg.database.drop_db("./database/database.sqlite")
+        X, y = make_classification(random_state=42)
 
-        lg_model_1 = lg.wrapper.SklearnWrapper(LogisticRegression())
-        lg_model_2 = lg.wrapper.SklearnWrapper(RandomForestClassifier())
-        lg_model_3 = lg.wrapper.SklearnWrapper(RidgeClassifier())
+        model1 = lg.lazy_estimator.LazyPipeline([("ridge", RidgeClassifier())])
+        model2 = lg.lazy_estimator.LazyPipeline([("logreg", LogisticRegression())])
+        model3 = lg.lazy_estimator.LazyPipeline([("ranfor", RandomForestClassifier())])
 
-        models = [lg_model_1, lg_model_2, lg_model_3]
+        models = [model1, model2, model3]
 
         score_list = []
         labels = []
         for model in models:
-            scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
-            score_list.append(scores["val_cv"])
-            labels.append(model.model_name)
+            results = cross_validate(model, X, y, cv=10)
+            score_list.append(results["test_score"])
+            labels.append(model.steps[0][0])
 
         file_name = "val_scores"
         title = "Model comparison"

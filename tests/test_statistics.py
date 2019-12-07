@@ -43,9 +43,9 @@ class TestStatistics(unittest.TestCase):
         best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution(scores)
 
         self.assertEqual(model_names[best_idx], "LogisticRegression")
-        self.assertEqual(best_solutions_idx, [0, 2])
+        self.assertEqual(best_solutions_idx, [0, 1, 2])
         self.assertAlmostEqual(pvalues[0], 0.4783, places=4)
-        self.assertAlmostEqual(pvalues[1], 0.0361, places=4)
+        self.assertAlmostEqual(pvalues[1], 0.0926, places=4)
         self.assertAlmostEqual(pvalues[2], 0.1611, places=4)
 
     def test_find_best_solution_pipelines(self):
@@ -56,31 +56,28 @@ class TestStatistics(unittest.TestCase):
         from sklearn.feature_selection import SelectKBest, f_classif
         from sklearn.preprocessing import RobustScaler, StandardScaler
         from sklearn.datasets import load_digits
+        from sklearn.model_selection import cross_validate
         import lazygrid as lg
 
-        x, y = load_digits(return_X_y=True)
+        # lg.database.drop_db("./database/database.sqlite")
+        X, y = load_digits(return_X_y=True)
 
-        preprocessors = [StandardScaler(), RobustScaler()]
-        feature_selectors = [SelectKBest(score_func=f_classif, k=1), SelectKBest(score_func=f_classif, k=5)]
-        classifiers = [PassiveAggressiveClassifier(random_state=42),
-                       RandomForestClassifier(random_state=42),
-                       SVC(random_state=42)]
+        preprocessors = [StandardScaler()]
+        feature_selectors = [SelectKBest(score_func=f_classif, k=1), SelectKBest(score_func=f_classif, k=10)]
+        classifiers = [RandomForestClassifier(random_state=42)]
 
         elements = [preprocessors, feature_selectors, classifiers]
 
         pipelines = lg.grid.generate_grid(elements)
-
-        score_list = []
+        val_scores = []
         for pipeline in pipelines:
-            model = lg.wrapper.PipelineWrapper(pipeline, db_name="./database/db-test.sqlite",
-                                               dataset_id=10, dataset_name="digits")
-            scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
-            score_list.append(scores["val_cv"])
+            scores = cross_validate(pipeline, X, y, cv=10)
+            val_scores.append(scores["test_score"])
 
-        best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution(score_list)
+        best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution(val_scores)
 
-        self.assertEqual(best_idx, 5)
-        self.assertEqual(best_solutions_idx, [4, 5, 10, 11])
+        self.assertEqual(best_idx, 1)
+        self.assertEqual(best_solutions_idx, [0, 1, 4, 5])
 
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestStatistics)
