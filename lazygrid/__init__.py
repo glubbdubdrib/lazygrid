@@ -18,14 +18,4 @@
 # Version of the lazygrid package
 __version__ = "4.1.0"
 
-import sys
-import os
-stderr = sys.stderr
-sys.stderr = open(os.devnull, 'w')
-import keras
-sys.stderr = stderr
-
-from . import logger, datasets, database, statistics, neural_models, \
-    grid, model_selection, plotter, wrapper
-
-logger.initialize_logging()
+from . import datasets, statistics, grid, plotter, lazy_estimator, database
