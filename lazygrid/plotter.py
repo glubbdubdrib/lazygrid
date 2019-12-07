@@ -16,131 +16,13 @@
 # limitations under the License.
 
 import matplotlib
+from sklearn.model_selection import learning_curve
 matplotlib.use('Agg')
 import os
 from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pandas as pd
-import pycm
-
-
-def plot_confusion_matrix(confusion_matrix: pd.DataFrame, font_scale: float,
-                          file_name: str, title: str = 'Confusion matrix') -> None:
-    """
-    Generate confusion matrix figure.
-
-    >>> import pandas as pd
-    >>> import lazygrid as lg
-    >>>
-    >>> conf_mat_dict = {"N": {"N": 48, "P": 2},
-    ...                  "P": {"N": 5, "P": 45}}
-    >>> confusion_matrix = pd.DataFrame.from_dict(conf_mat_dict)
-    >>>
-    >>> lg.plotter.plot_confusion_matrix(confusion_matrix, font_scale=1, file_name="conf_mat.png")
-
-    Parameters
-    --------
-    :param confusion_matrix: confusion matrix dataframe
-    :param font_scale: font size
-    :param file_name: figure file name
-    :param title: figure title
-    :return: None
-    """
-
-    sns.set(font_scale=font_scale)
-
-    plt.figure()
-    ax = sns.heatmap(confusion_matrix, annot=True, vmin=0, linewidths=.3, cmap="Greens", square=True, fmt='d')
-    ax.set(xlabel='Prediction', ylabel='True', title=title)
-    plt.savefig(file_name, dpi=800)
-    plt.close()
-
-    return
-
-
-def one_hot_list_to_categorical(y_one_hot_list: List[np.ndarray]) -> np.ndarray:
-    """
-    Transform list of one-hot-encoded labels into a categorical array of labels.
-
-    Parameters
-    --------
-    :param y_one_hot_list: one-hot-encoded list of labels
-    :return: categorical array of labels
-    """
-    y_categorical_list = []
-    for y_one_hot in y_one_hot_list:
-        y_categorical_list.append(np.argmax(y_one_hot, axis=1))
-    return np.hstack(y_categorical_list)
-
-
-def generate_confusion_matrix(model_id: int, model_name: str,
-                              y_pred_list: List[np.ndarray], y_true_list: List[np.ndarray],
-                              class_names: dict = None, font_scale: float = 1,
-                              output_dir: str = "./figures",
-                              encoding: str = "categorical") -> pycm.ConfusionMatrix:
-    """
-    Generate and save confusion matrix.
-
-    Examples
-    --------
-    >>> from sklearn.ensemble import RandomForestClassifier
-    >>> from sklearn.datasets import make_classification
-    >>> import lazygrid as lg
-    >>>
-    >>> x, y = make_classification(random_state=42)
-    >>>
-    >>> classifier = RandomForestClassifier(random_state=42)
-    >>>
-    >>> model = lg.wrapper.SklearnWrapper(classifier)
-    >>> score, fitted_models, y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
-    >>>
-    >>> conf_mat = lg.plotter.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
-    ...                                                 y_pred_list, y_true_list, class_names={0: "N", 1: "P"})
-
-    Parameters
-    --------
-    :param model_id: model identifier
-    :param model_name: model name
-    :param y_pred_list: predicted labels list
-    :param y_true_list: true labels list
-    :param class_names: dictionary of label names like {0: "Class 1", 1: "Class 2"}
-    :param font_scale: figure font size
-    :param output_dir: output directory
-    :param encoding: kind of label encoding
-    :return: confusion matrix object
-    """
-
-    # transform labels
-    if encoding == "categorical":
-        y_pred = np.hstack(y_pred_list)
-        y_true = np.hstack(y_true_list)
-    elif encoding == "one-hot":
-        y_pred = one_hot_list_to_categorical(y_pred_list)
-        y_true = one_hot_list_to_categorical(y_true_list)
-    else:
-        return None
-
-    conf_mat = pycm.ConfusionMatrix(actual_vector=y_true, predict_vector=y_pred)
-
-    # rename classes
-    if class_names:
-        conf_mat.relabel(mapping=class_names)
-
-    conf_mat_pd = pd.DataFrame.from_dict(conf_mat.matrix).T
-
-    # figure title and file name
-    name = model_name + "_" + str(model_id)
-    title = model_name + " " + str(model_id)
-    file_name = os.path.join(output_dir, "conf_mat_" + name + ".png")
-    title = title
-    if not os.path.isdir(output_dir):
-        os.mkdir(output_dir)
-
-    plot_confusion_matrix(conf_mat_pd, font_scale, file_name, title)
-
-    return conf_mat
 
 
 def plot_boxplots(scores: List, labels: List[str], file_name: str, title: str, output_dir: str = "./figures") -> dict:
@@ -196,3 +78,116 @@ def plot_boxplots(scores: List, labels: List[str], file_name: str, title: str, o
     plt.show()
 
     return results
+
+
+def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
+                        n_jobs=None, train_sizes=np.linspace(.1, 1.0, 5)):
+    """
+    Generate 3 plots: the test and training learning curve, the training
+    samples vs fit times curve, the fit times vs score curve.
+
+    Parameters
+    ----------
+    estimator : object type that implements the "fit" and "predict" methods
+        An object of that type which is cloned for each validation.
+
+    title : string
+        Title for the chart.
+
+    X : array-like, shape (n_samples, n_features)
+        Training vector, where n_samples is the number of samples and
+        n_features is the number of features.
+
+    y : array-like, shape (n_samples) or (n_samples, n_features), optional
+        Target relative to X for classification or regression;
+        None for unsupervised learning.
+
+    axes : array of 3 axes, optional (default=None)
+        Axes to use for plotting the curves.
+
+    ylim : tuple, shape (ymin, ymax), optional
+        Defines minimum and maximum yvalues plotted.
+
+    cv : int, cross-validation generator or an iterable, optional
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+          - None, to use the default 5-fold cross-validation,
+          - integer, to specify the number of folds.
+          - :term:`CV splitter`,
+          - An iterable yielding (train, test) splits as arrays of indices.
+
+        For integer/None inputs, if ``y`` is binary or multiclass,
+        :class:`StratifiedKFold` used. If the estimator is not a classifier
+        or if ``y`` is neither binary nor multiclass, :class:`KFold` is used.
+
+        Refer :ref:`User Guide <cross_validation>` for the various
+        cross-validators that can be used here.
+
+    n_jobs : int or None, optional (default=None)
+        Number of jobs to run in parallel.
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
+        for more details.
+
+    train_sizes : array-like, shape (n_ticks,), dtype float or int
+        Relative or absolute numbers of training examples that will be used to
+        generate the learning curve. If the dtype is float, it is regarded as a
+        fraction of the maximum size of the training set (that is determined
+        by the selected validation method), i.e. it has to be within (0, 1].
+        Otherwise it is interpreted as absolute sizes of the training sets.
+        Note that for classification the number of samples usually have to
+        be big enough to contain at least one sample from each class.
+        (default: np.linspace(0.1, 1.0, 5))
+    """
+    if axes is None:
+        _, axes = plt.subplots(1, 2, figsize=(15, 5))
+
+    axes[0].set_title(title)
+    if ylim is not None:
+        axes[0].set_ylim(*ylim)
+    axes[0].set_xlabel("Training examples")
+    axes[0].set_ylabel("Score")
+
+    train_sizes, train_scores, test_scores, fit_times, _ = \
+        learning_curve(estimator, X, y, cv=cv, n_jobs=n_jobs,
+                       train_sizes=train_sizes, return_times=True)
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+    fit_times_mean = np.mean(fit_times, axis=1)
+    fit_times_std = np.std(fit_times, axis=1)
+
+    # Plot learning curve
+    axes[0].grid()
+    axes[0].fill_between(train_sizes, train_scores_mean - train_scores_std,
+                         train_scores_mean + train_scores_std, alpha=0.1,
+                         color="r")
+    axes[0].fill_between(train_sizes, test_scores_mean - test_scores_std,
+                         test_scores_mean + test_scores_std, alpha=0.1,
+                         color="g")
+    axes[0].plot(train_sizes, train_scores_mean, 'o-', color="r",
+                 label="Training score")
+    axes[0].plot(train_sizes, test_scores_mean, 'o-', color="g",
+                 label="Cross-validation score")
+    axes[0].legend(loc="best")
+
+    # Plot n_samples vs fit_times
+    axes[1].grid()
+    axes[1].plot(train_sizes, fit_times_mean, 'o-')
+    axes[1].fill_between(train_sizes, fit_times_mean - fit_times_std,
+                         fit_times_mean + fit_times_std, alpha=0.1)
+    axes[1].set_xlabel("Training examples")
+    axes[1].set_ylabel("fit_times")
+    axes[1].set_title("Scalability of the model")
+
+    # # Plot fit_time vs score
+    # axes[2].grid()
+    # axes[2].plot(fit_times_mean, test_scores_mean, 'o-')
+    # axes[2].fill_between(fit_times_mean, test_scores_mean - test_scores_std,
+    #                      test_scores_mean + test_scores_std, alpha=0.1)
+    # axes[2].set_xlabel("fit_times")
+    # axes[2].set_ylabel("Score")
+    # axes[2].set_title("Performance of the model")
+
+    return plt
