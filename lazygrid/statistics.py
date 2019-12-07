@@ -21,6 +21,7 @@ from scipy import stats
 from scipy.stats import mannwhitneyu
 from sklearn.datasets import make_classification
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
+from sklearn.metrics import make_scorer, recall_score, f1_score, roc_auc_score, accuracy_score, confusion_matrix
 
 
 def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> List:
@@ -149,3 +150,34 @@ def find_best_solution(solutions: list,
         index += 1
 
     return best_idx, best_solutions_idx, pvalues
+
+
+def tn(y_true, y_pred):
+    return confusion_matrix(y_true, y_pred)[0, 0]
+
+
+def fp(y_true, y_pred):
+    return confusion_matrix(y_true, y_pred)[0, 1]
+
+
+def fn(y_true, y_pred):
+    return confusion_matrix(y_true, y_pred)[1, 0]
+
+
+def tp(y_true, y_pred):
+    return confusion_matrix(y_true, y_pred)[1, 1]
+
+
+def specificity(y_true, y_pred):
+    return tn(y_true, y_pred) / (tn(y_true, y_pred) + fp(y_true, y_pred))
+
+
+def sensitivity(y_true, y_pred):
+    return tp(y_true, y_pred) / (tp(y_true, y_pred) + fn(y_true, y_pred))
+
+
+scoring_summary = {'tp': make_scorer(tp), 'tn': make_scorer(tn),
+                   'fp': make_scorer(fp), 'fn': make_scorer(fn),
+                   'specificity': make_scorer(specificity), 'sensitivity': make_scorer(sensitivity),
+                   'recall': make_scorer(recall_score), 'accuracy': make_scorer(accuracy_score),
+                   'f1': make_scorer(f1_score), 'roc_auc': make_scorer(roc_auc_score)}
