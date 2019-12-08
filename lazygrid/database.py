@@ -38,14 +38,10 @@ def _save_to_db(db_name: str, entry: Iterable, query: Iterable,
     :return: query result
     """
 
-    # Sqlite does not accept INT larger than 8 bytes.
-    sqlite3.register_adapter(np.int64, lambda val: int(val))
-    sqlite3.register_adapter(np.int32, lambda val: int(val))
+    # # Sqlite does not accept INT larger than 8 bytes.
+    # sqlite3.register_adapter(np.int64, lambda val: int(val))
+    # sqlite3.register_adapter(np.int32, lambda val: int(val))
 
-    # Create database if does not exists
-    root_dir = os.path.dirname(db_name)
-    if not os.path.isdir(root_dir) and root_dir:
-        os.makedirs(root_dir)
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
     db.execute(create_stmt)
@@ -77,9 +73,9 @@ def _load_from_db(db_name: str, query: Iterable, create_stmt: str, query_stmt: s
     :return: query result
     """
 
-    # Sqlite does not accept INT larger than 8 bytes.
-    sqlite3.register_adapter(np.int64, lambda val: int(val))
-    sqlite3.register_adapter(np.int32, lambda val: int(val))
+    # # Sqlite does not accept INT larger than 8 bytes.
+    # sqlite3.register_adapter(np.int64, lambda val: int(val))
+    # sqlite3.register_adapter(np.int32, lambda val: int(val))
 
     # Connect to database if it exists
     root_dir = os.path.dirname(db_name)
@@ -106,9 +102,9 @@ def load_all_from_db(db_name: str, table_name: str = "MODEL") -> Optional[Any]:
     :return: query result
     """
 
-    # Sqlite does not accept INT larger than 8 bytes.
-    sqlite3.register_adapter(np.int64, lambda val: int(val))
-    sqlite3.register_adapter(np.int32, lambda val: int(val))
+    # # Sqlite does not accept INT larger than 8 bytes.
+    # sqlite3.register_adapter(np.int64, lambda val: int(val))
+    # sqlite3.register_adapter(np.int32, lambda val: int(val))
 
     # Connect to database if it exists
     root_dir = os.path.dirname(db_name)
