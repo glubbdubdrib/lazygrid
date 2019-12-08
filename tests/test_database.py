@@ -3,6 +3,33 @@ import unittest
 
 class TestDatabase(unittest.TestCase):
 
+    def test_dir(self):
+
+        import os
+        import shutil
+        from sklearn import svm
+        from sklearn.datasets import make_classification
+        from sklearn.feature_selection import SelectKBest
+        from sklearn.feature_selection import f_regression
+        from lazygrid import database, lazy_estimator
+
+        db_name = "./database/database.sqlite"
+        db_dir = os.path.dirname(db_name)
+        if os.path.isdir(db_dir):
+            shutil.rmtree(db_dir)
+        database.load_all_from_db(db_name)
+
+        # generate some data to play with
+        X, y = make_classification(n_samples=2000, n_informative=5, n_redundant=0, random_state=42)
+
+        anova_filter = SelectKBest(f_regression, k=5)
+        clf = svm.SVC(kernel='linear', random_state=42)
+        le = lazy_estimator.LazyPipeline([('anova', anova_filter), ('svc', clf)], database=db_dir)
+
+        if os.path.isdir(db_dir):
+            shutil.rmtree(db_dir)
+        le.fit(X, y)
+
     def test_drop_db(self):
 
         import sqlite3

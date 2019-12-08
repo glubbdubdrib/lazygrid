@@ -33,6 +33,8 @@ class TestDatasets(unittest.TestCase):
         import numpy as np
         import lazygrid as lg
 
+        x, y, n_classes = lg.datasets.load_openml_dataset(data_id=1)
+        x, y, n_classes = lg.datasets.load_openml_dataset(data_id=-1)
         x, y, n_classes = lg.datasets.load_openml_dataset(dataset_name="iris")
 
         self.assertTrue(isinstance(x, np.ndarray))
