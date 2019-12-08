@@ -122,7 +122,7 @@ or from source code:
     $ cd ./lazygrid
     $ pip install -r requirements.txt .
 
-LazyGrid is known to be working on Python 3.5 and above.
+LazyGrid is compatible with Python 3.5 and above.
 
 
 Documentation
