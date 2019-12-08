@@ -1,14 +1,8 @@
-matplotlib==2.2.2
+matplotlib
 numpy
 scipy
-tensorflow==1.14.0
-keras==2.2.4
+keras
 scikit-learn
 pandas
 openml
 statsmodels
-pycm==2.5
-seaborn
-Pygments
-codecov
-tqdm
