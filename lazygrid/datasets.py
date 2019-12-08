@@ -26,7 +26,7 @@ import os
 from sklearn.impute import SimpleImputer
 from sklearn.datasets import fetch_openml
 from sklearn.preprocessing import LabelEncoder
-from .logger import log_warn, log_info
+import logging
 
 
 def load_npy_dataset(path_x: str, path_y: str) -> (np.ndarray, np.ndarray, int):
@@ -61,7 +61,7 @@ def load_npy_dataset(path_x: str, path_y: str) -> (np.ndarray, np.ndarray, int):
         n_classes = len(np.unique(y))
 
     except FileNotFoundError:
-        log_warn.exception("Exception occurred")
+        logging.exception("Exception occurred")
         return None, None, None
 
     return x, y, n_classes
@@ -109,15 +109,15 @@ def load_openml_dataset(data_id: int = None, dataset_name: str = None) -> (np.nd
         return x, y, n_classes
 
     except Exception:
-        log_warn.exception("Exception occurred")
+        logging.exception("Exception occurred")
         return [None, None, None]
 
 
-def _similar(a: str, b: str) -> float:
-    """
-    Compute how much two strings are similar.
-    """
-    return SequenceMatcher(None, a, b).ratio()
+# def _similar(a: str, b: str) -> float:
+#     """
+#     Compute how much two strings are similar.
+#     """
+#     return SequenceMatcher(None, a, b).ratio()
 
 
 def _is_correct_task(task: str, db: dict) -> bool:
@@ -169,7 +169,7 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
     for key, db in openml.datasets.list_datasets().items():
 
         try:
-            log_info.info("Loading data set: %s, ID: %d..." % (db['name'], db['did']))
+            logging.info("Loading data set: %s, ID: %d..." % (db['name'], db['did']))
 
             if db['NumberOfClasses'] > min_classes and _is_correct_task(task, db) and \
                     db['NumberOfInstances'] < max_samples and db['NumberOfFeatures'] < max_features and \
@@ -189,15 +189,15 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
                 data[db['name']]['n_classes'] = db['NumberOfClasses']
 
         except (IndexError, ValueError, KeyError):
-            log_info.info("Error loading data set: %s, ID: %d!" % (db['name'], db['did']))
-            log_info.info(traceback.format_exc())
+            logging.info("Error loading data set: %s, ID: %d!" % (db['name'], db['did']))
+            logging.info(traceback.format_exc())
 
     data = pd.DataFrame(data).transpose()
     try:
         data = data.sort_values(by=["n_samples", "n_features", "n_classes"]).astype('int64')
     except KeyError:
-        log_info.info(traceback.format_exc())
-        return None
+        logging.info(traceback.format_exc())
+        return pd.DataFrame()
 
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
@@ -241,6 +241,8 @@ def fetch_datasets(output_dir: str = "./data", update_data: bool = False,
     files_location = os.path.join(output_dir, '*.csv')
     file_list = glob.glob(files_location)
 
+    data = None
+
     # download (again) new data if necessary
     if not os.path.isdir(output_dir) or not file_list or update_data:
         data = _load_datasets(output_dir, min_classes, task, max_samples, max_features)
@@ -255,9 +257,5 @@ def fetch_datasets(output_dir: str = "./data", update_data: bool = False,
         file_list = glob.glob(files_location)
         file_list.sort()
         data = pd.read_csv(file_list[-1], index_col=0).astype("int64")
-
-    else:
-        log_warn.exception("Exception occurred")
-        raise ValueError("Data not found")
 
     return data

@@ -19,7 +19,7 @@ import os
 import sqlite3
 from typing import Optional, Any, Iterable
 import numpy as np
-from .logger import log_warn
+import logging
 
 
 def _save_to_db(db_name: str, entry: Iterable, query: Iterable,
@@ -54,7 +54,7 @@ def _save_to_db(db_name: str, entry: Iterable, query: Iterable,
     try:
         cursor.execute(insert_stmt, entry)
     except sqlite3.IntegrityError:
-        log_warn.exception("Exception occurred")
+        logging.exception("Exception occurred")
         pass
     result = cursor.execute(query_stmt, query).fetchone()
 
