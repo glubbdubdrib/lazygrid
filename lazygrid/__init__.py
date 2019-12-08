@@ -16,6 +16,6 @@
 # limitations under the License.
 
 # Version of the lazygrid package
-__version__ = "4.1.0"
+__version__ = "5.0.0"
 
 from . import datasets, statistics, grid, plotter, lazy_estimator, database
