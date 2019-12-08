@@ -18,6 +18,6 @@ or from source code:
 
 LazyGrid is known to be working on Python 3.5 and above. The package is
 compatible with `scikit-learn
-0.21 <https://scikit-learn.org/stable/index.html>`__, `tensorflow
+0.21 <https://scikit-learn.org/stable/index.html>`__ (and above), `tensorflow
 1.14 <https://www.tensorflow.org/>`__ and `Keras
 2.2.4 <https://keras.io/>`__.

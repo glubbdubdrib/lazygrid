@@ -1,5 +1,5 @@
 Statistics
-========
+==========
 
 :mod:`lazygrid.statistics`
 

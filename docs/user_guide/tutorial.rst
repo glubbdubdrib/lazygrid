@@ -12,8 +12,6 @@ LazyGrid has three main features:
   `memoization paradigm <https://en.wikipedia.org/wiki/Memoization>`__,
   avoiding fitting a model or a pipeline step twice.
 
-The package is `highly customizable <#utilities>`__
-according to the user's needs.
 
 Model generation
 ----------------
@@ -27,7 +25,11 @@ steps, i.e. preprocessors, feature selectors, classifiers, etc. Each
 step could be either a ``sklearn`` object or a ``keras`` model.
 
 Once you have defined the pipeline elements, the ``generate_grid``
-method will return a list of models of type ``sklearn.Pipeline``.
+method will return a list of models of type
+``lazygrid.lazy_estimator.LazyPipeline``.
+
+The ``LazyPipeline`` class extends the ``sklearn.pipeline.Pipeline`` class
+by providing an interface to SQLite databases.
 
 .. code:: python
 
@@ -125,6 +127,45 @@ You will find the conclusion of this example in the
 Model comparison
 ----------------
 
+Optimized cross-validation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``LazyPipeline`` objects can be extremely useful
+when a large number of machine learning pipelines need to be compared
+through cross-validation techniques.
+
+In fact, once a pipeline step has been fitted, LazyGrid saves the fitted
+step into a `SQLite <https://www.sqlite.org/index.html>`__ database.
+Therefore, should the step be required by another pipeline, LazyGrid
+fetches the model that has already been fitted from the database.
+
+This approach may boost the speed of time-consuming steps as recursive
+feature elimination techniques, voting classifiers or deep neural networks.
+
+.. code:: python
+
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.svm import SVC
+    from sklearn.feature_selection import SelectKBest, f_classif, RFE
+    from sklearn.preprocessing import RobustScaler, StandardScaler
+    from sklearn.datasets import make_classification
+    import lazygrid as lg
+
+    x, y = make_classification(random_state=42)
+
+    preprocessors = [StandardScaler(), RobustScaler()]
+    feature_selectors = [RFE(RandomForestClassifier, n_features_to_select=10),
+                         SelectKBest(score_func=f_classif, k=10)]
+    classifiers = [RandomForestClassifier(random_state=42), SVC(random_state=42)]
+
+    elements = [preprocessors, feature_selectors, classifiers]
+
+    models = lg.grid.generate_grid(elements)
+
+    for model in models:
+        scores = cross_validate(model, X, y, cv=10)
+
+
 
 Statistical hypothesis tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -134,13 +175,7 @@ provides friendly APIs to compare models' performances by using a
 cross-validation procedure and by analyzing the outcomes applying
 statistical hypothesis tests.
 
-First, you should define a classification task (e.g.
-``x, y = make_classification(random_state=42)``), define the set of
-models you would like to compare (e.g.
-``model1 = LogisticRegression(random_state=42)``), and call for each
-model the ``cross_val_score`` method provided by ``sklearn``.
-
-Finally, you can collect the cross-validation scores into a single list
+You can collect the cross-validation scores into a single list
 and call the ``find_best_solution`` method provided by LazyGrid. Such
 method applies the following algorithm: it looks for the model having
 the highest mean value over its cross-validation scores ("the best
@@ -154,273 +189,20 @@ level for the test.
 
 .. code:: python
 
-    from sklearn.linear_model import LogisticRegression, RidgeClassifier
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.datasets import make_classification
-    from sklearn.model_selection import cross_val_score
-    import lazygrid as lg
-    from scipy.stats import mannwhitneyu
+    ...
+    scores = []
+    for model in models:
+        score = cross_validate(model, X, y, cv=10)
+        scores.append(score["test_score"])
 
-    x, y = make_classification(random_state=42)
-
-    model1 = LogisticRegression(random_state=42)
-    model2 = RandomForestClassifier(random_state=42)
-    model3 = RidgeClassifier(random_state=42)
-
-    score1 = cross_val_score(estimator=model1, X=x, y=y, cv=10)
-    score2 = cross_val_score(estimator=model2, X=x, y=y, cv=10)
-    score3 = cross_val_score(estimator=model3, X=x, y=y, cv=10)
-
-    scores = [score1, score2, score3]
     best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution(scores,
                                                                              test=mannwhitneyu,
                                                                              alpha=0.05)
 
-Optimized cross-validation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-LazyGrid includes an optimized implementation of cross-validation
-(``cross_validation``), specifically devised when a huge number of
-machine learning pipelines need to be compared.
-
-In fact, once a pipeline step has been fitted, LazyGrid saves the fitted
-model into a `SQLite <https://www.sqlite.org/index.html>`__ database.
-Therefore, should the step be required by another pipeline, LazyGrid
-fetches the model that has already been fitted from the database.
-
-.. code:: python
-
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.svm import SVC
-    from sklearn.feature_selection import SelectKBest, f_classif
-    from sklearn.preprocessing import RobustScaler, StandardScaler
-    from sklearn.datasets import make_classification
-    import lazygrid as lg
-
-    x, y = make_classification(random_state=42)
-
-    preprocessors = [StandardScaler(), RobustScaler()]
-    feature_selectors = [SelectKBest(score_func=f_classif, k=1),
-                         SelectKBest(score_func=f_classif, k=2)]
-    classifiers = [RandomForestClassifier(random_state=42), SVC(random_state=42)]
-
-    elements = [preprocessors, feature_selectors, classifiers]
-
-    models = lg.grid.generate_grid(elements)
-
-    for model in models:
-        model = lg.wrapper.SklearnWrapper(model, dataset_id=1,
-                                          db_name="./database/sklearn-db.sqlite",
-                                          dataset_name="make-classification")
-        score, fitted_models, \
-            y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x, y=y)
-
-
-Automatic reports
-^^^^^^^^^^^^^^^^^^^^
-
-The ``compare_models`` method provides a friendly approach to compare a
-list of models: it calls the ``cross_validation`` method for each
-model, automatically performing the optimized cross-validation using the
-memoization paradigm; it calls the ``find_best_solution`` method,
-applying a statistical test on the cross-validation results; it
-returns a ``Pandas.DataFrame`` containing a summary of the results.
-
-.. code:: python
-
-    from sklearn.linear_model import LogisticRegression, RidgeClassifier
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.datasets import make_classification
-    import pandas as pd
-    import lazygrid as lg
-
-    x, y = make_classification(random_state=42)
-
-    lg_model_1 = lg.wrapper.SklearnWrapper(LogisticRegression())
-    lg_model_2 = lg.wrapper.SklearnWrapper(RandomForestClassifier())
-    lg_model_3 = lg.wrapper.SklearnWrapper(RidgeClassifier())
-
-    models = [lg_model_1, lg_model_2, lg_model_3]
-    results = lg.model_selection.compare_models(models=models, x_train=x, y_train=y)
-
-
-Utilities
----------
-
-
-Customize your cross-validation score
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-By default, during the cross-validation procedure, LazyGrid exploits as score
-function the built-in ``score`` method of the current ``model``, calling
-:code:`model.score(x, y)`.
-
-However, two levels of customization are provided. The first one allows you
-to use custom sklear-like score functions (e.g. ``accuracy_score`` or ``f1_score``).
-You just need to call the cross-validation procedure specifying the desired
-score function:
-
-.. code:: python
-
-    import lazygrid as lg
-    from sklearn.metrics import f1_score
-
-    ...
-
-    lg.model_selection.cross_validation(model, x, y, score_fun=f1_score)
-
-Alternatively, if you really need something different, you could write your
-own score function. LazyGrid assigns to the ``generic_score`` method
-all available local variables at each cross-validation step, giving you
-maximum power and flexibility:
-
-.. code:: python
-
-    ...
-    score[split_index] = generic_score(**locals())
-    ...
-
-As an example, you could use a score function to measure the class-imbalance
-ratio of the validation set:
-
-.. code:: python
-
-    import numpy as np
-
-    def compute_class_imbalance_ratio(y_val, *args, **kwargs):
-        """
-        Compute class-imbalance ratio of the validation set.
-        """
-
-        values, counts = np.unique(y_val, return_counts=True)
-        pmax = np.max(counts) # majority class
-        pmin = np.min(counts) # minority class
-        imbalance_ratio = pmax / pmin
-        return imbalance_ratio
-
-and use it when calling the cross-validation procedure:
-
-.. code:: python
-
-    import lazygrid as lg
-
-    ...
-
-    lg.model_selection.cross_validation(model, x, y, generic_score=compute_class_imbalance_ratio)
-
-
-Customize your Wrapper
-^^^^^^^^^^^^^^^^^^^^^^
-
-LazyGrid provides several classes to wrap machine learning models to make
-them able to interface properly with a
-`SQLite <https://www.sqlite.org/index.html>`__ database where fitted models
-will be stored.
-In order to use LazyGrid methods you should wrap your models first.
-Model wrappers include classes as:
-``SklearnWrapper``, ``PipelineWrapper`` (for ``sklearn`` pipelines), and
-``KerasWrapper``.
-
-Moreover you can extend the abstract class ``Wrapper``
-and customize the wrapper behavior according to your needs.
-You just need to implement the ``set_random_seed`` and the
-``parse_parameters`` abstract methods. The easiest (but deprecated)
-way could be skipping them as follows:
-
-.. code:: python
-
-    from lazygrid.wrapper import Wrapper
-
-
-    class CustomWrapper(Wrapper):
-
-        def __init__(self, **kwargs):
-            Wrapper.__init__(self, **kwargs)
-
-        def set_random_seed(self, seed, split_index, random_model, **kwargs):
-            pass
-
-        def parse_parameters(self, **kwargs) -> str:
-            pass
-
-
-Plot your results
-^^^^^^^^^^^^^^^^^
-
-Should you need a visual output of the results, LazyGrid includes
-the ``generate_confusion_matrix`` method to save a cunfusion matrix figure
-and to return a `pycm <https://www.pycm.ir/>`__ ConfusionMatrix object.
-
-The following lines conclude the `keras example <#grid-search>`__:
-
-.. code:: python
-
-    ...
-
-    # define scoring function for one-hot-encoded lables
-    def score_fun(y, y_pred):
-        y = np.argmax(y, axis=1)
-        y_pred = np.argmax(y_pred, axis=1)
-        return f1_score(y, y_pred, average="weighted")
-
-    db_name = "./database/database.sqlite"
-    dataset_id = 2
-    dataset_name = "digits"
-
-    # cross validation
-    for model, fp in zip(models, fit_parameters):
-        model = lg.wrapper.KerasWrapper(model, fit_params=fp, db_name=db_name,
-                                        dataset_id=dataset_id, dataset_name=dataset_name)
-        score, fitted_models, \
-            y_pred_list, y_true_list = lg.model_selection.cross_validation(model=model, x=x_train, y=y_train,
-                                                                           x_val=x_val, y_val=y_val,
-                                                                           random_data=False, n_splits=3,
-                                                                           scoring=score_fun)
-
-    conf_mat = lg.plotter.generate_confusion_matrix(fitted_models[-1].model_id, fitted_models[-1].model_name,
-                                                    y_pred_list, y_true_list, encoding="one-hot")
-
-
-.. image:: https://raw.githubusercontent.com/glubbdubdrib/lazygrid/master/figs/conf_mat_Sequential_3.png
-    :width: 400
-    :alt: Confusion matrix example
-
-If you are looking for a visual representation of your
-cross-validation scores, you may use the ``
-
-.. code:: python
-
-    from sklearn.linear_model import LogisticRegression, RidgeClassifier
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.datasets import make_classification
-    import lazygrid as lg
-
-    x, y = make_classification(random_state=42)
-
-    lg_model_1 = lg.wrapper.SklearnWrapper(LogisticRegression())
-    lg_model_2 = lg.wrapper.SklearnWrapper(RandomForestClassifier())
-    lg_model_3 = lg.wrapper.SklearnWrapper(RidgeClassifier())
-
-    models = [lg_model_1, lg_model_2, lg_model_3]
-
-    score_list = []
-    labels = []
-    for model in models:
-        scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
-        score_list.append(scores["val_cv"])
-        labels.append(model.model_name)
-
-    file_name = "val_scores"
-    title = "Model comparison"
-    lg.plotter.plot_boxplots(score_list, labels, file_name, title)
-
-.. image:: https://raw.githubusercontent.com/glubbdubdrib/lazygrid/master/figs/box_plot_val_scores.png
-    :width: 400
-    :alt: Box plot example
 
 
 Data set APIs
-^^^^^^^^^^^^^^
+-------------
 
 LazyGrid includes a set of easy-to-use APIs to fetch
 `OpenML <https://www.openml.org/>`__ data sets (NB: OpenML has a
