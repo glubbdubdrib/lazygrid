@@ -2,6 +2,7 @@ matplotlib
 numpy
 scipy
 keras
+tensorflow
 scikit-learn
 pandas
 openml
