@@ -12,6 +12,7 @@ class TestStatistics(unittest.TestCase):
         x = np.random.normal(loc=0, scale=2, size=10)
         confidence_level = 0.05
 
+        l_bound, u_bound = lg.statistics.confidence_interval_mean_t(np.array(10 * [0.5]), confidence_level)
         l_bound, u_bound = lg.statistics.confidence_interval_mean_t(x, confidence_level)
 
         print(l_bound)
@@ -26,6 +27,7 @@ class TestStatistics(unittest.TestCase):
         from sklearn.ensemble import RandomForestClassifier
         from sklearn.datasets import make_classification
         from sklearn.model_selection import cross_val_score
+        import numpy as np
         import lazygrid as lg
 
         x, y = make_classification(random_state=42)
@@ -40,6 +42,8 @@ class TestStatistics(unittest.TestCase):
         score3 = cross_val_score(estimator=model3, X=x, y=y, cv=10)
 
         scores = [score1, score2, score3]
+        fake_score = np.array(10 * [0.5])
+        best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution([fake_score, fake_score])
         best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution(scores)
 
         self.assertEqual(model_names[best_idx], "LogisticRegression")

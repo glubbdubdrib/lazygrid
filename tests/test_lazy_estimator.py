@@ -60,6 +60,12 @@ class TestLazyEstimator(unittest.TestCase):
         plt.show()
 
         plt.figure()
+        plot_learning_curve(le, "Learning Curves (Anova + SVC)", X, y, cv=10, ylim=[-5, 5])
+        plt.tight_layout()
+        plt.savefig("./figures/learning_curve.png")
+        plt.show()
+
+        plt.figure()
         plot_learning_curve(le, "Learning Curves (Anova + SVC)", X, y, cv=10)
         plt.tight_layout()
         plt.savefig("./figures/learning_curve.png")
