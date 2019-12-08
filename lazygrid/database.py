@@ -18,7 +18,6 @@
 import os
 import sqlite3
 from typing import Optional, Any, Iterable
-import numpy as np
 import logging
 
 
@@ -28,16 +27,25 @@ def _save_to_db(db_name: str, entry: Iterable, query: Iterable,
     Save fitted model into a database.
 
     Parameters
-    --------
-    :param db_name: database name
-    :param entry: collection that will be inserted into the database
-    :param query: collection required to fetch a database entry
-    :param create_stmt: database statement for table creation
-    :param insert_stmt: database statement for model insertion
-    :param query_stmt: database statement for model query
-    :return: query result
-    """
+    ----------
+    db_name
+        Database name
+    entry
+        Collection that will be inserted into the database
+    query
+        Collection required to fetch a database entry
+    create_stmt
+        Database statement for table creation
+    insert_stmt
+        Database statement for model insertion
+    query_stmt
+        Database statement for model query
 
+    Returns
+    -------
+    Optional[Any]
+        Query result
+    """
     # # Sqlite does not accept INT larger than 8 bytes.
     # sqlite3.register_adapter(np.int64, lambda val: int(val))
     # sqlite3.register_adapter(np.int32, lambda val: int(val))
@@ -65,14 +73,21 @@ def _load_from_db(db_name: str, query: Iterable, create_stmt: str, query_stmt: s
     Load fitted model from a database.
 
     Parameters
-    --------
-    :param db_name: database name
-    :param query: collection required to fetch a database entry
-    :param create_stmt: database statement for table creation
-    :param query_stmt: database statement for model query
-    :return: query result
-    """
+    ----------
+    db_name
+        Database name
+    query
+        Collection required to fetch a database entry
+    create_stmt
+        Database statement for table creation
+    query_stmt
+        Database statement for model query
 
+    Returns
+    -------
+    Optional[Any]
+        Query result
+    """
     # # Sqlite does not accept INT larger than 8 bytes.
     # sqlite3.register_adapter(np.int64, lambda val: int(val))
     # sqlite3.register_adapter(np.int32, lambda val: int(val))
@@ -96,12 +111,17 @@ def load_all_from_db(db_name: str, table_name: str = "MODEL") -> Optional[Any]:
     Load all database items.
 
     Parameters
-    --------
-    :param db_name: database name
-    :param table_name: name of table to be loaded
-    :return: query result
-    """
+    ----------
+    db_name
+        Database name
+    table_name
+        Database table to load
 
+    Returns
+    -------
+    Optional[Any]
+        Query result
+    """
     # # Sqlite does not accept INT larger than 8 bytes.
     # sqlite3.register_adapter(np.int64, lambda val: int(val))
     # sqlite3.register_adapter(np.int32, lambda val: int(val))
@@ -130,18 +150,21 @@ def drop_db(db_name: str) -> None:
     """
     Drop database table if it exists.
 
+    Parameters
+    ----------
+    db_name
+        Database name
+
+    Returns
+    -------
+    None
+
     Examples
     --------
     >>> import lazygrid as lg
     >>>
     >>> lg.database.drop_db(db_name="my-database.sqlite")
-
-    Parameters
-    --------
-    :param db_name: database name
-    :return: None
     """
-
     root_dir = os.path.dirname(db_name)
     if not os.path.isdir(root_dir) and root_dir:
         os.makedirs(root_dir)

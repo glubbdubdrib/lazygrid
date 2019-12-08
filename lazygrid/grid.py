@@ -17,9 +17,9 @@
 
 import functools
 import traceback
-from typing import Tuple, List
+from typing import Tuple, List, Iterator, Collection
 import copy
-from keras import Sequential, Model
+from keras import Model
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
@@ -30,8 +30,20 @@ from itertools import chain, combinations, product
 from .lazy_estimator import LazyPipeline
 
 
-def _powerset(iterable):
-    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+def _powerset(iterable: Collection) -> Iterator:
+    """
+    Compute the powerset of a collection.
+
+    Parameters
+    ----------
+    iterable
+        Collection of items
+
+    Returns
+    -------
+    Iterator
+        Powerset of the collection
+    """
     s = list(iterable)
     return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
 
@@ -39,6 +51,21 @@ def _powerset(iterable):
 def generate_grid(elements: list, lazy: bool = True, **kwargs) -> list:
     """
     Generate all possible combinations of sklearn Pipelines given the input steps.
+
+    Parameters
+    ----------
+    elements
+        List of elements used to generate the pipelines
+    lazy
+        If True it generates LazyPipelines objects;
+        if False it generates standard sklearn Pipeline objects
+    kwargs
+        Keyword arguments to generate Pipeline objects
+
+    Returns
+    -------
+    list
+        List of pipelines
 
     Example
     --------
@@ -55,12 +82,6 @@ def generate_grid(elements: list, lazy: bool = True, **kwargs) -> list:
     >>> elements = [preprocessors, feature_selectors, classifiers]
     >>>
     >>> pipelines = lg.grid.generate_grid(elements)
-
-    Parameters
-    --------
-    :param elements: list of elements used to generate the pipelines. It should be a list of N lists,
-                     each one containing an arbitrary number of elements of the same kind.
-    :return: list of sklearn Pipelines
     """
 
     assert isinstance(elements, list)
@@ -98,6 +119,20 @@ def generate_grid_search(model: KerasClassifier, model_params: dict,
     """
     Generate all possible combinations of models.
 
+    Parameters
+    ----------
+    model
+        Model architecture
+    model_params
+        Model parameters. For each key the dictionary should contain a list of possible values
+    fit_params
+        Fit parameters. For each key the dictionary should contain a list of possible values
+
+    Returns
+    -------
+    Tuple
+        Models and their corresponding fit parameters
+
     Example
     --------
     >>> import keras
@@ -128,14 +163,6 @@ def generate_grid_search(model: KerasClassifier, model_params: dict,
     >>>
     >>> # generate all possible models given the parameters' grid
     >>> models, fit_parameters = lg.grid.generate_grid_search(kmodel, model_params, fit_params)
-
-
-    Parameters
-    --------
-    :param model: model architecture
-    :param model_params: model parameters
-    :param fit_params: fit parameters
-    :return: list of sklearn Pipelines
     """
 
     models = []

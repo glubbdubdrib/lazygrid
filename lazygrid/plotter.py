@@ -22,47 +22,30 @@ import os
 from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 def plot_boxplots(scores: List, labels: List[str], file_name: str, title: str, output_dir: str = "./figures") -> dict:
     """
     Generate and save boxplots.
 
-    Examples
-    --------
-    >>> from sklearn.linear_model import LogisticRegression, RidgeClassifier
-    >>> from sklearn.ensemble import RandomForestClassifier
-    >>> from sklearn.datasets import make_classification
-    >>> import lazygrid as lg
-    >>>
-    >>> x, y = make_classification(random_state=42)
-    >>>
-    >>> lg_model_1 = lg.wrapper.SklearnWrapper(LogisticRegression())
-    >>> lg_model_2 = lg.wrapper.SklearnWrapper(RandomForestClassifier())
-    >>> lg_model_3 = lg.wrapper.SklearnWrapper(RidgeClassifier())
-    >>>
-    >>> models = [lg_model_1, lg_model_2, lg_model_3]
-    >>>
-    >>> score_list = []
-    >>> labels = []
-    >>> for model in models:
-    ...     scores, _, _, _ = lg.model_selection.cross_validation(model, x, y)
-    ...     score_list.append(scores["val_cv"])
-    ...     labels.append(model.model_name)
-    ...
-    >>> file_name = "val_scores"
-    >>> title = "Model comparison"
-    >>> box_plot_object = lg.plotter.plot_boxplots(score_list, labels, file_name, title)
-
     Parameters
-    --------
-    :param scores: list of scores to compare
-    :param labels: name / identifier of each score list
-    :param file_name: output file name
-    :param title: figure title
-    :param output_dir: output directory
-    :return: boxplot object
+    ----------
+    scores
+        List of scores to compare
+    labels
+        Name / identifier of each score list
+    file_name
+        Output file name
+    title
+        Figure title
+    output_dir
+        Output directory
+
+    Returns
+    -------
+    Boxplot
+        boxplot object
+
     """
     file_name = os.path.join(output_dir, "box_plot_" + file_name + ".png")
     if not os.path.isdir(output_dir):

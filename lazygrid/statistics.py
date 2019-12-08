@@ -28,6 +28,18 @@ def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> List:
     """
     Compute the confidence interval of the mean from sample data.
 
+    Parameters
+    ----------
+    x
+        Sample
+    cl
+        Confidence level
+
+    Returns
+    -------
+    List
+        confidence interval
+
     Examples
     --------
     >>> import numpy as np
@@ -51,14 +63,7 @@ def confidence_interval_mean_t(x: np.ndarray, cl: float = 0.05) -> List:
     However, with smaller sample sizes, the t distribution is leptokurtic,
     which means it has relatively more scores in its tails than does the normal distribution.
     As a result, you have to extend farther from the mean to contain a given proportion of the area.
-
-    Parameters
-    --------
-    :param x: sample
-    :param cl: confidence level
-    :return: confidence interval
     """
-
     if np.all(x == np.mean(x)):
         return [np.mean(x), np.mean(x)]
     bounds = stats.t.interval(1-cl, len(x)-1, loc=np.mean(x), scale=stats.sem(x))
@@ -75,6 +80,24 @@ def find_best_solution(solutions: list,
     a statistical test and a significance level (alpha).
 
     The best solution is defined as the one having the highest mean value.
+
+    Parameters
+    ----------
+    solutions
+        List of candidate solutions
+    test
+        Statistical test
+    alpha
+        Significance level
+    kwargs
+        Keyword arguments required by the statistical test
+
+    Returns
+    -------
+    Tuple
+        - the position of the best solution inside the candidate input list;
+        - the positions of the solutions which are not separable from the best one;
+        - the list of p-values returned by the statistical test while comparing the best solution to the other candidates
 
     Examples
     --------
@@ -103,17 +126,6 @@ def find_best_solution(solutions: list,
     [0, 2]
     >>> pvalues #doctest: +ELLIPSIS
     [0.4782..., 0.0360..., 0.1610...]
-
-    Parameters
-    --------
-    :param solutions: list of candidate solutions
-    :param test: statistical test
-    :param alpha: significance level
-    :param kwargs: additional parameters required by the statistical test
-    :return: a tuple containing:
-        - the position of the best solution inside the candidate input list;
-        - the positions of the solutions which are not separable from the best one;
-        - the list of p-values returned by the statistical test while comparing the best solution to the other candidates
     """
 
     best_idx = 0

@@ -33,6 +33,18 @@ def load_npy_dataset(path_x: str, path_y: str) -> (np.ndarray, np.ndarray, int):
     """
     Load npy data set.
 
+    Parameters
+    ----------
+    path_x
+        Path to data matrix
+    path_y
+        Path to data labels
+
+    Returns
+    -------
+    Tuple
+        Data matrix, data labels, and number of classes
+
     Examples
     --------
     >>> import os
@@ -47,14 +59,7 @@ def load_npy_dataset(path_x: str, path_y: str) -> (np.ndarray, np.ndarray, int):
     >>> np.save(path_y, y)
     >>>
     >>> x, y, n_classes = lg.datasets.load_npy_dataset(path_x, path_y)
-
-    Parameters
-    --------
-    :param path_x: path to data matrix
-    :param path_y: path to data labels
-    :return: data matrix, data labels, and number of classes
     """
-
     try:
         x = np.load(path_x)
         y = np.load(path_y)
@@ -71,6 +76,18 @@ def load_openml_dataset(data_id: int = None, dataset_name: str = None) -> (np.nd
     """
     Load OpenML data set.
 
+    Parameters
+    ----------
+    data_id
+        Data set identifier
+    dataset_name
+        Data set name
+
+    Returns
+    -------
+    Tuple
+        Data matrix, data labels, and number of classes
+
     Examples
     --------
 
@@ -79,14 +96,7 @@ def load_openml_dataset(data_id: int = None, dataset_name: str = None) -> (np.nd
     >>> x, y, n_classes = lg.datasets.load_openml_dataset(dataset_name="iris")
     >>> n_classes
     3
-
-    Parameters
-    --------
-    :param data_id: data set identifier
-    :param dataset_name: data set name
-    :return: data matrix, data labels, and number of classes
     """
-
     assert (data_id is not None) or (dataset_name is not None)
     assert isinstance(dataset_name, str) or dataset_name is None
 
@@ -125,10 +135,16 @@ def _is_correct_task(task: str, db: dict) -> bool:
     Check if the current data set is compatible with the specified task.
 
     Parameters
-    --------
-    :param task: regression or classification
-    :param db: OpenML data set dictionary
-    :return: True if the task and the data set are compatible
+    ----------
+    task
+        Regression or classification
+    db
+        OpenML data set dictionary
+
+    Returns
+    -------
+    bool
+        True if the task and the data set are compatible
     """
     if task == "classification":
         return db['NumberOfSymbolicFeatures'] == 1 and db['NumberOfClasses'] > 0
@@ -143,6 +159,24 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
     """
     Load all OpenML data sets compatible with the requirements and save a .csv file as a reference.
 
+    Parameters
+    ----------
+    output_dir
+        Directory where the .csv file will be stored
+    min_classes
+        Minimum number of classes required for each data set
+    task
+        Classification or regression
+    max_samples
+        Maximum number of samples required for each data set
+    max_features
+        Maximum number of features required for each data set
+
+    Returns
+    -------
+    Dataframe
+        Information required to load the latest version of each data set
+
     Examples
     --------
     >>> datasets = _load_datasets(task="classification", min_classes=2, max_samples=1000, max_features=10)
@@ -153,15 +187,6 @@ def _load_datasets(output_dir: str = "./data", min_classes: int = 0, task: str =
     n_features        4
     n_classes         3
     Name: iris, dtype: int64
-
-    Parameters
-    --------
-    :param output_dir: directory where the .csv file will be stored
-    :param min_classes: minimum number of classes required for each data set
-    :param task: classification or regression
-    :param max_samples: maximum number of samples required for each data set
-    :param max_features: maximum number of features required for each data set
-    :return: dataframe containing the information required to load the latest version of each data set
     """
 
     data = {}
@@ -213,6 +238,27 @@ def fetch_datasets(output_dir: str = "./data", update_data: bool = False,
     """
     Load OpenML data sets compatible with the requirements.
 
+    Parameters
+    ----------
+    output_dir
+        Directory where the .csv file will be stored
+    update_data
+        If True it deletes cached data sets and downloads their latest version;
+        otherwise it loads data sets as specified inside the cache
+    min_classes
+        Minimum number of classes required for each data set
+    task
+        Classification or regression
+    max_samples
+        Maximum number of samples required for each data set
+    max_features
+        Maximum number of features required for each data set
+
+    Returns
+    -------
+    Dataframe
+        Information required to load the latest version of each data set
+
     Examples
     --------
     >>> import lazygrid as lg
@@ -225,19 +271,7 @@ def fetch_datasets(output_dir: str = "./data", update_data: bool = False,
     n_features        4
     n_classes         3
     Name: iris, dtype: int64
-
-    Parameters
-    --------
-    :param output_dir: directory where the .csv file will be stored
-    :param update_data: if True it deletes cached data sets and downloads their latest version;
-                        otherwise it loads data sets as specified inside the cache
-    :param min_classes: minimum number of classes required for each data set
-    :param task: classification or regression
-    :param max_samples: maximum number of samples required for each data set
-    :param max_features: maximum number of features required for each data set
-    :return: dataframe containing the information required to load the latest version of each data set
     """
-
     files_location = os.path.join(output_dir, '*.csv')
     file_list = glob.glob(files_location)
 
