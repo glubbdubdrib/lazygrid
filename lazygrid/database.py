@@ -50,6 +50,10 @@ def _save_to_db(db_name: str, entry: Iterable, query: Iterable,
     # sqlite3.register_adapter(np.int64, lambda val: int(val))
     # sqlite3.register_adapter(np.int32, lambda val: int(val))
 
+    # Connect to database if it exists
+    root_dir = os.path.dirname(db_name)
+    if not os.path.isdir(root_dir) and root_dir:
+        os.makedirs(root_dir)
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
     db.execute(create_stmt)
@@ -58,7 +62,7 @@ def _save_to_db(db_name: str, entry: Iterable, query: Iterable,
     try:
         cursor.execute(insert_stmt, entry)
     except sqlite3.IntegrityError:
-        logging.exception("Exception occurred")
+        # logging.exception("Exception occurred")
         pass
     result = cursor.execute(query_stmt, query).fetchone()
 

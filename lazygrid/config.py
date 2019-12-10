@@ -17,18 +17,18 @@
 
 create_model_stmt = '''CREATE TABLE IF NOT EXISTS MODEL(
         id INTEGER PRIMARY KEY,
-        data_set INTEGER NOT NULL,
         train TEXT NOT NULL,
+        features TEXT NOT NULL,
         parameters TEXT NOT NULL,
         ids TEXT NOT NULL,
         estimator BLOB NOT NULL,
-        
-        UNIQUE (data_set, train, parameters, ids)
+
+        UNIQUE (train, features, parameters, ids)
         )'''
 
 insert_model_stmt = '''INSERT INTO MODEL(
-        data_set, train, parameters, ids, estimator)
+        train, features, parameters, ids, estimator)
         VALUES(?, ?, ?, ?, ?)'''
 
 query_model_stmt = '''SELECT * FROM MODEL
-                      WHERE data_set=? AND train=? AND parameters=? AND ids=?'''
+                      WHERE train=? AND features=? AND parameters=? AND ids=?'''

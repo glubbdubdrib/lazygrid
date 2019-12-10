@@ -19,10 +19,12 @@ import copy
 import os
 import pickle
 import sys
-from typing import Callable, Any, Union, Collection, Iterable
+from typing import Callable, Any, Union, Collection, Iterable, List
 import json
 import numpy as np
+import pandas as pd
 import sklearn
+from sklearn.base import BaseEstimator
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted, check_random_state, check_memory
@@ -115,7 +117,7 @@ class LazyPipeline(Pipeline):
         self.database = database
 
     # TODO: fit_params sould be checked
-    def fit(self, X: Iterable, y: Iterable = None, data_set: int = 0, train: Iterable = None, **fit_params):
+    def fit(self, X: pd.DataFrame, y: Iterable = None, **fit_params):
         """Fit the model
 
         Fit all the transforms one after the other and transform the
@@ -131,12 +133,6 @@ class LazyPipeline(Pipeline):
             Training targets. Must fulfill label requirements for all steps of
             the pipeline.
 
-        data_set
-            Data set identifier. It must be different from data set to data set.
-
-        train
-            Training set indexes.
-
         **fit_params : dict of string -> object
             Parameters passed to the ``fit`` method of each step, where
             each parameter name is prefixed such that parameter ``p`` for step
@@ -148,127 +144,123 @@ class LazyPipeline(Pipeline):
             This estimator
         """
 
-        try:
-            check_is_fitted(self, "is_fitted_")
+        assert isinstance(X, pd.DataFrame)
 
-        except sklearn.exceptions.NotFittedError:
+        # Check that X and y have correct shape
+        Xnp, ynp = check_X_y(X, y)
+        self._validate_steps()
 
-            # Check that X and y have correct shape
-            X, y = check_X_y(X, y)
-            self._validate_steps()
-
-            if train is None:
-                try:
-                    # get train indeces from caller
-                    callingframe = sys._getframe(1)
-                    train = callingframe.f_locals["train"]
-
-                except KeyError:
-                    train = np.arange(0, len(X))
-
-            self.train_ = train
-            self.data_set_ = data_set
-            self.database_ = os.path.join(self.database, "database.sqlite")
-            self.fit_params_ = fit_params
-            self._load()
-            self._fit(X, y, **fit_params)
-            self._save()
-            self.is_fitted_ = True
+        self.train_ = list(X.index)
+        self.features_ = list(X.columns)
+        self.database_ = os.path.join(self.database, "database.sqlite")
+        self.fit_params_ = fit_params
+        self._fit(X, y, **fit_params)
+        self.is_fitted_ = True
 
         return self
 
-    def _fit(self, X, y=None, **fit_params):
+    def _fit(self, X: pd.DataFrame, y: Iterable = None, **fit_params):
         Xt = X
+        id_list = [None]
+        # fit or load intermediate steps
         for (step_idx, name, transformer) in self._iter(with_final=False, filter_passthrough=False):
-            if not hasattr(transformer, "is_fitted_"):
-                Xt = transformer.fit_transform(Xt, y, **fit_params)
-                self.steps[step_idx] = (name, transformer)
+            transformer, id_list, Xt = self._fit_step(transformer, id_list, False, Xt, y, **fit_params)
+            self.steps[step_idx] = (name, copy.deepcopy(transformer))
 
-        if not hasattr(self.steps[-1][1], "is_fitted_"):
-            self.steps[-1][1].fit(Xt, y, **fit_params)
-
-        return self
-
-    def _save(self):
-
-        parameters = {}
-        step_ids = []
-        previous_id = None
-        for step in self.steps:
-            estimator = step[1]
-            estimator.is_fitted_ = True
-            pms = estimator.get_params()
-            for key, value in pms.items():
-                if isinstance(value, Callable):
-                    pms[key] = value.__name__
-
-                if value == "warn":
-                    pms[key] = 10
-
-            step_name = estimator.__class__.__name__
-            parameters[step_name] = pms
-            query = (
-                self.data_set_,
-                json.dumps(self.train_.tolist()),
-                json.dumps(pms),
-                json.dumps([previous_id]),
-            )
-            entry = (
-                *query,
-                pickle.dumps(estimator),
-            )
-            result = _save_to_db(self.database_, entry, query, create_model_stmt, insert_model_stmt, query_model_stmt)
-            if result:
-                previous_id = result[0]
-                step_ids.append(previous_id)
-
-        self.parameters_ = json.dumps(parameters)
-        self.model_ids_ = step_ids
-
-        check = load_all_from_db(self.database_)
+        # fit or load final step
+        transformer, id_list, Xt = self._fit_step(self.steps[-1][1], id_list, True, Xt, y, **fit_params)
+        self.steps[-1] = (self.steps[-1][0], copy.deepcopy(transformer))
 
         return self
 
-    def _load(self):
+    def _fit_step(self, transformer: BaseEstimator, id_list: List, is_final: bool,
+                  X: pd.DataFrame, y: Iterable = None, **fit_params):
+        # make transformer unique for each CV split
+        transformer.train_ = list(X.index)
+        transformer.features_ = list(X.columns)
 
-        parameters = {}
-        step_ids = []
-        previous_id = None
-        i = 0
-        for step in self.steps:
-            estimator = step[1]
-            pms = estimator.get_params()
-            for key, value in pms.items():
-                if isinstance(value, Callable):
-                    pms[key] = value.__name__
+        # load transformer from database
+        transformer_loaded, id_list_loaded = self._load(transformer, id_list)
+        is_loaded = False if transformer_loaded is None else True
+        if is_loaded:
+            transformer = transformer_loaded
+            id_list = id_list_loaded
 
-                if value == "warn":
-                    pms[key] = 10
+        # fit final step
+        if is_final:
+            if not is_loaded:
+                transformer.fit(X, y, **fit_params)
 
-            step_name = estimator.__class__.__name__
-            parameters[step_name] = pms
-            query = (
-                self.data_set_,
-                json.dumps(self.train_.tolist()),
-                json.dumps(pms),
-                json.dumps([previous_id]),
-            )
-            result = _load_from_db(self.database_, query, create_model_stmt, query_model_stmt)
-            if result:
-                previous_id = result[0]
-                step_ids.append(previous_id)
-                estimator = pickle.loads(result[5])
-                estimator.is_fitted_ = True
-                self.steps[i] = (self.steps[i][0], copy.deepcopy(estimator))
+        # fit intermediate steps
+        else:
+            if not is_loaded:
+                Xnp = transformer.fit_transform(X, y, **fit_params)
 
             else:
-                break
+                Xnp = transformer.transform(X)
 
-            i += 1
+            # reshape input data
+            if Xnp.shape != X.shape:
+                if isinstance(X, pd.DataFrame):
+                    X = X.iloc[:, transformer.get_support()]
 
-        self.parameters_ = json.dumps(parameters)
-        self.model_ids_ = step_ids
+                else:
+                    X = Xnp
 
-        check = load_all_from_db(self.database_)
+        # save transformer
+        if not is_loaded:
+            id_list = self._save(transformer, id_list)
 
-        return self
+        return transformer, id_list, X
+
+    def _save(self, transformer: BaseEstimator, id_list: List):
+        query, entry = _step_db(transformer, id_list)
+        result = _save_to_db(self.database_, entry, query, create_model_stmt, insert_model_stmt, query_model_stmt)
+        if result:
+            id_list.append(result[0])
+        return id_list
+
+    def _load(self, transformer: BaseEstimator, id_list: List):
+        query, entry = _step_db(transformer, id_list)
+        result = _load_from_db(self.database_, query, create_model_stmt, query_model_stmt)
+        if result:
+            id_list.append(result[0])
+            transformer = pickle.loads(result[5])
+            transformer.is_fitted_ = True
+            return transformer, id_list
+        else:
+            return None, None
+
+
+def _step_db(estimator: BaseEstimator, id_list: List):
+    estimator.is_fitted_ = True
+    pms = {}
+    # make a dictionary of parameters
+    for key, value in estimator.get_params().items():
+        if isinstance(value, Callable):
+            pms[key] = value.__name__
+
+        if value == "warn":
+            pms[key] = 10
+
+        # discard parameters which are not json serializable
+        try:
+            json.dumps(value)
+            pms[key] = value
+        except TypeError:
+            continue
+
+    estimator.train_.sort()
+    estimator.features_.sort()
+    query = (
+        json.dumps(estimator.train_),
+        json.dumps(estimator.features_),
+        json.dumps(pms),
+        json.dumps(id_list),
+    )
+    entry = (
+        *query,
+        pickle.dumps(estimator),
+    )
+
+    return query, entry
