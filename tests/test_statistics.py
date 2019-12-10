@@ -62,9 +62,11 @@ class TestStatistics(unittest.TestCase):
         from sklearn.datasets import load_digits
         from sklearn.model_selection import cross_validate
         import lazygrid as lg
+        import pandas as pd
 
         # lg.database.drop_db("./database/database.sqlite")
         X, y = load_digits(return_X_y=True)
+        X = pd.DataFrame(X)
 
         preprocessors = [StandardScaler()]
         feature_selectors = [SelectKBest(score_func=f_classif, k=1), SelectKBest(score_func=f_classif, k=10)]
@@ -75,13 +77,13 @@ class TestStatistics(unittest.TestCase):
         pipelines = lg.grid.generate_grid(elements)
         val_scores = []
         for pipeline in pipelines:
-            scores = cross_validate(pipeline, X, y, cv=10)
+            scores = cross_validate(pipeline, X, y, cv=10, n_jobs=5)
             val_scores.append(scores["test_score"])
 
         best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution(val_scores)
 
-        self.assertEqual(best_idx, 1)
-        self.assertEqual(best_solutions_idx, [0, 1, 4, 5])
+        self.assertEqual(best_idx, 0)
+        self.assertEqual(best_solutions_idx, [0, 4])
 
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestStatistics)

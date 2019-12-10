@@ -12,6 +12,7 @@ class TestDatabase(unittest.TestCase):
         from sklearn.feature_selection import SelectKBest
         from sklearn.feature_selection import f_regression
         from lazygrid import database, lazy_estimator
+        import pandas as pd
 
         db_name = "./database/database.sqlite"
         db_dir = os.path.dirname(db_name)
@@ -21,6 +22,7 @@ class TestDatabase(unittest.TestCase):
 
         # generate some data to play with
         X, y = make_classification(n_samples=2000, n_informative=5, n_redundant=0, random_state=42)
+        X = pd.DataFrame(X)
 
         anova_filter = SelectKBest(f_regression, k=5)
         clf = svm.SVC(kernel='linear', random_state=42)
@@ -57,11 +59,13 @@ class TestDatabase(unittest.TestCase):
         from sklearn.datasets import make_classification
         from sklearn.model_selection import cross_validate
         import lazygrid as lg
+        import pandas as pd
 
         db_name = "./database/database.sqlite"
         lg.database.drop_db(db_name)
 
         X, y = make_classification(random_state=42)
+        X = pd.DataFrame(X)
 
         model = lg.lazy_estimator.LazyPipeline([("ridge", RidgeClassifier())])
         results = cross_validate(model, X, y, cv=10)
