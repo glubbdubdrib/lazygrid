@@ -12,6 +12,54 @@ LazyGrid has three main features:
   `memoization paradigm <https://en.wikipedia.org/wiki/Memoization>`__,
   avoiding fitting a model or a pipeline step twice.
 
+Environment setup
+-----------------
+
+Input data
+^^^^^^^^^^
+
+In order to make each LazyPipeline transformer unique for different
+cross-validation splits, you must provide input data as
+`DataFrame <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html>`__
+objects. The easiest way to transform numpy arrays into ``DataFrame``
+data structures is the following:
+
+.. code:: python
+
+    import pandas as pd
+    ...
+    X, y = ...
+    X = pd.DataFrame(X)
+
+Organizing data sets and databases
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you are using more than one data set in your project, it is highly
+recommended to generate a hierarchy of database directories
+so that models fitted on different data sets can be easily identified:
+
+.. code:: python
+
+    import os
+    ...
+    database_root_dir = "database"
+    data_set_name = "foo"
+    database_dir = os.path.join(database_root_dir, data_set_name)
+    if not os.path.isdir(database_dir):
+        os.makedirs(database_dir)
+
+This code will generate a directory structure as the following:
+
+.. code-block:: text
+
+    database
+    +-- foo
+    |   +-- database.sqlite
+    +-- baz
+    |   +-- database.sqlite
+    +-- ...
+
+
 
 Model generation
 ----------------
@@ -73,6 +121,7 @@ compare keras models with different optimizers and fit parameters.
     from sklearn.model_selection import StratifiedKFold
     import lazygrid as lg
     import numpy as np
+    import pandas as pd
     from keras.wrappers.scikit_learn import KerasClassifier
 
 
@@ -95,7 +144,8 @@ compare keras models with different optimizers and fit parameters.
 
 
     # load data set
-    x, y = load_digits(return_X_y=True)
+    X, y = load_digits(return_X_y=True)
+    X = pd.DataFrame(X)
 
     skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
     list_of_splits = [split for split in skf.split(x, y)]
@@ -127,6 +177,7 @@ You will find the conclusion of this example in the
 Model comparison
 ----------------
 
+
 Optimized cross-validation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -150,8 +201,10 @@ feature elimination techniques, voting classifiers or deep neural networks.
     from sklearn.preprocessing import RobustScaler, StandardScaler
     from sklearn.datasets import make_classification
     import lazygrid as lg
+    import pandas as pd
 
-    x, y = make_classification(random_state=42)
+    X, y = make_classification(random_state=42)
+    X = pd.DataFrame(X)
 
     preprocessors = [StandardScaler(), RobustScaler()]
     feature_selectors = [RFE(RandomForestClassifier, n_features_to_select=10),

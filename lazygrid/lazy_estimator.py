@@ -74,9 +74,11 @@ class LazyPipeline(Pipeline):
     >>> from sklearn.feature_selection import SelectKBest
     >>> from sklearn.feature_selection import f_regression
     >>> from lazygrid.lazy_estimator import LazyPipeline
+    >>> import pandas as pd
     >>> # generate some data to play with
     >>> X, y = make_classification(
     ...     n_informative=5, n_redundant=0, random_state=42)
+    >>> X = pd.DataFrame(X)
     >>> # ANOVA SVM-C
     >>> anova_filter = SelectKBest(f_regression, k=5)
     >>> clf = svm.SVC(kernel='linear')
