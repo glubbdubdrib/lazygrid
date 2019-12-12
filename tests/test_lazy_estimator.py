@@ -8,7 +8,7 @@ class TestLazyEstimator(unittest.TestCase):
         from sklearn import svm
         from sklearn.datasets import make_classification
         from sklearn.feature_selection import SelectKBest
-        from sklearn.feature_selection import f_regression
+        from sklearn.feature_selection import f_classif
         from lazygrid.lazy_estimator import LazyPipeline
         from lazygrid.database import load_all_from_db, drop_db
         from lazygrid.plotter import plot_learning_curve
@@ -22,20 +22,21 @@ class TestLazyEstimator(unittest.TestCase):
         db_dir = "./db/make_classification/"
         db_name = os.path.join(db_dir, "database.sqlite")
         drop_db(db_name)
+        n_jobs = 10
 
         # generate some data to play with
         X, y = make_classification(n_samples=2000, n_informative=5, n_redundant=0, random_state=42)
         X = pd.DataFrame(X)
 
-        anova_filter = SelectKBest(f_regression, k=5)
+        anova_filter = SelectKBest(f_classif, k=5)
         clf = svm.SVC(kernel='linear', random_state=42)
         le = LazyPipeline([('anova', anova_filter), ('svc', clf)], database=db_dir)
 
         s1 = cross_validate(le, X, y, cv=10, return_estimator=True,
-                            return_train_score=True, scoring=scoring_summary, n_jobs=5)
+                            return_train_score=True, scoring=scoring_summary, n_jobs=n_jobs)
         s2 = cross_validate(le, X, y, cv=10, return_estimator=True,
-                            return_train_score=True, scoring=scoring_summary, n_jobs=5)
-        s3 = permutation_test_score(le, X, y, cv=2, n_jobs=5)
+                            return_train_score=True, scoring=scoring_summary, n_jobs=n_jobs)
+        # s3 = permutation_test_score(le, X, y, cv=2, n_jobs=n_jobs)
 
         le.fit(X, y)
         print("Global accuracy: %.4f" % le.score(X, y))
@@ -61,13 +62,14 @@ class TestLazyEstimator(unittest.TestCase):
         plt.show()
 
         plt.figure()
-        plot_learning_curve(le, "Learning Curves (Anova + SVC)", X, y, cv=10, ylim=[-5, 5])
+        plot_learning_curve(le, "Learning Curves (Anova + SVC)", X, y, cv=10,
+                            ylim=[-5, 5], n_jobs=n_jobs)
         plt.tight_layout()
         plt.savefig("./figures/learning_curve.png")
         plt.show()
 
         plt.figure()
-        plot_learning_curve(le, "Learning Curves (Anova + SVC)", X, y, cv=10)
+        plot_learning_curve(le, "Learning Curves (Anova + SVC)", X, y, cv=10, n_jobs=n_jobs)
         plt.tight_layout()
         plt.savefig("./figures/learning_curve.png")
         plt.show()
@@ -79,7 +81,7 @@ class TestLazyEstimator(unittest.TestCase):
         results = results.append(pd.DataFrame.from_dict(s2))
         results.to_csv("./results/results_summary.csv")
 
-        self.assertEqual(len(check), 452)
+        self.assertEqual(len(check), 68)
         self.assertEqual(len(s1["estimator"]), 10)
         self.assertEqual(len(s2["estimator"]), 10)
 

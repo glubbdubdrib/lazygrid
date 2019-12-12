@@ -17,7 +17,7 @@
 
 import functools
 import traceback
-from typing import Tuple, List, Iterator, Collection
+from typing import Tuple, List, Iterator, Iterable
 import copy
 from keras import Model
 from keras.wrappers.scikit_learn import KerasClassifier
@@ -30,7 +30,7 @@ from itertools import chain, combinations, product
 from .lazy_estimator import LazyPipeline
 
 
-def _powerset(iterable: Collection) -> Iterator:
+def _powerset(iterable: Iterable) -> Iterator:
     """
     Compute the powerset of a collection.
 

@@ -16,20 +16,19 @@
 # limitations under the License.
 
 import copy
+import json
 import os
 import pickle
-import sys
-from typing import Callable, Any, Union, Collection, Iterable, List
-import json
-import numpy as np
+from collections import OrderedDict
+from typing import Callable, Iterable, List, Tuple
+
 import pandas as pd
-import sklearn
 from sklearn.base import BaseEstimator
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.utils.validation import check_X_y, check_array, check_is_fitted, check_random_state, check_memory
-from .database import _save_to_db, _load_from_db, load_all_from_db
+from sklearn.utils.validation import check_X_y
+
 from .config import create_model_stmt, insert_model_stmt, query_model_stmt
+from .database import _save_to_db, _load_from_db
 
 
 class LazyPipeline(Pipeline):
@@ -152,8 +151,8 @@ class LazyPipeline(Pipeline):
         Xnp, ynp = check_X_y(X, y)
         self._validate_steps()
 
-        self.train_ = list(X.index)
-        self.features_ = list(X.columns)
+        self.train_ = tuple(X.index)
+        self.features_ = tuple(X.columns)
         self.database_ = os.path.join(self.database, "database.sqlite")
         self.fit_params_ = fit_params
         self._fit(X, y, **fit_params)
@@ -163,30 +162,30 @@ class LazyPipeline(Pipeline):
 
     def _fit(self, X: pd.DataFrame, y: Iterable = None, **fit_params):
         Xt = X
-        id_list = [None]
+        ids = ()
         # fit or load intermediate steps
         for (step_idx, name, transformer) in self._iter(with_final=False, filter_passthrough=False):
-            transformer, id_list, Xt = self._fit_step(transformer, id_list, False, Xt, y, **fit_params)
+            transformer, ids, Xt = self._fit_step(transformer, ids, False, Xt, y, **fit_params)
             self.steps[step_idx] = (name, copy.deepcopy(transformer))
 
         # fit or load final step
-        transformer, id_list, Xt = self._fit_step(self.steps[-1][1], id_list, True, Xt, y, **fit_params)
+        transformer, ids, Xt = self._fit_step(self.steps[-1][1], ids, True, Xt, y, **fit_params)
         self.steps[-1] = (self.steps[-1][0], copy.deepcopy(transformer))
 
         return self
 
-    def _fit_step(self, transformer: BaseEstimator, id_list: List, is_final: bool,
+    def _fit_step(self, transformer: BaseEstimator, ids: Tuple, is_final: bool,
                   X: pd.DataFrame, y: Iterable = None, **fit_params):
         # make transformer unique for each CV split
-        transformer.train_ = list(X.index)
-        transformer.features_ = list(X.columns)
+        transformer.train_ = tuple(X.index)
+        transformer.features_ = tuple(X.columns)
 
         # load transformer from database
-        transformer_loaded, id_list_loaded = self._load(transformer, id_list)
+        transformer_loaded, ids_loaded = self._load(transformer, ids)
         is_loaded = False if transformer_loaded is None else True
         if is_loaded:
             transformer = transformer_loaded
-            id_list = id_list_loaded
+            ids = ids_loaded
 
         # fit final step
         if is_final:
@@ -211,54 +210,54 @@ class LazyPipeline(Pipeline):
 
         # save transformer
         if not is_loaded:
-            id_list = self._save(transformer, id_list)
+            ids = self._save(transformer, ids)
 
-        return transformer, id_list, X
+        return transformer, ids, X
 
-    def _save(self, transformer: BaseEstimator, id_list: List):
-        query, entry = _step_db(transformer, id_list)
+    def _save(self, transformer: BaseEstimator, ids: Tuple):
+        query, entry = _step_db(transformer, ids)
         result = _save_to_db(self.database_, entry, query, create_model_stmt, insert_model_stmt, query_model_stmt)
         if result:
-            id_list.append(result[0])
-        return id_list
+            ids = ids + (result[0],)
+        return ids
 
-    def _load(self, transformer: BaseEstimator, id_list: List):
-        query, entry = _step_db(transformer, id_list)
+    def _load(self, transformer: BaseEstimator, ids: Tuple):
+        query, entry = _step_db(transformer, ids)
         result = _load_from_db(self.database_, query, create_model_stmt, query_model_stmt)
         if result:
-            id_list.append(result[0])
+            ids = ids + (result[0],)
             transformer = pickle.loads(result[5])
             transformer.is_fitted_ = True
-            return transformer, id_list
+            return transformer, ids
         else:
             return None, None
 
 
-def _step_db(estimator: BaseEstimator, id_list: List):
+def _step_db(estimator: BaseEstimator, ids: Tuple):
     estimator.is_fitted_ = True
-    pms = {}
     # make a dictionary of parameters
-    for key, value in estimator.get_params().items():
+    pms = ()
+    estimator_params = estimator.get_params()
+    for key in sorted(estimator_params.keys()):
+        value = estimator_params[key]
         if isinstance(value, Callable):
-            pms[key] = value.__name__
+            pms = pms + (key, value.__name__)
 
         if value == "warn":
-            pms[key] = 10
+            pms = pms + (key, 10)
 
         # discard parameters which are not json serializable
         try:
             json.dumps(value)
-            pms[key] = value
+            pms = pms + (key, value)
         except TypeError:
             continue
 
-    estimator.train_.sort()
-    estimator.features_.sort()
     query = (
         json.dumps(estimator.train_),
         json.dumps(estimator.features_),
         json.dumps(pms),
-        json.dumps(id_list),
+        json.dumps(ids),
     )
     entry = (
         *query,
