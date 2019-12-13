@@ -53,7 +53,7 @@ def _save_to_db(db_name: str, entry: Iterable, query: Iterable,
     # Connect to database if it exists
     root_dir = os.path.dirname(db_name)
     if not os.path.isdir(root_dir) and root_dir:
-        os.makedirs(root_dir)
+        os.makedirs(root_dir, exist_ok=True)
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
     db.execute(create_stmt)
@@ -99,7 +99,7 @@ def _load_from_db(db_name: str, query: Iterable, create_stmt: str, query_stmt: s
     # Connect to database if it exists
     root_dir = os.path.dirname(db_name)
     if not os.path.isdir(root_dir) and root_dir:
-        os.makedirs(root_dir)
+        os.makedirs(root_dir, exist_ok=True)
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
     db.execute(create_stmt)
@@ -133,7 +133,7 @@ def load_all_from_db(db_name: str, table_name: str = "MODEL") -> Optional[Any]:
     # Connect to database if it exists
     root_dir = os.path.dirname(db_name)
     if not os.path.isdir(root_dir) and root_dir:
-        os.makedirs(root_dir)
+        os.makedirs(root_dir, exist_ok=True)
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
 
@@ -171,7 +171,7 @@ def drop_db(db_name: str) -> None:
     """
     root_dir = os.path.dirname(db_name)
     if not os.path.isdir(root_dir) and root_dir:
-        os.makedirs(root_dir)
+        os.makedirs(root_dir, exist_ok=True)
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
 
