@@ -24,7 +24,7 @@ with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='lazygrid',
-    version='5.0.3',
+    version='5.0.4',
     description='LazyGrid: Automatic, efficient and flexible implementation of complex machine '
                 'learning pipeline generation and cross-validation.',
     long_description=long_description,
