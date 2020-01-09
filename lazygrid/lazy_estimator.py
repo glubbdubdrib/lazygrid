@@ -195,18 +195,23 @@ class LazyPipeline(Pipeline):
         # fit intermediate steps
         else:
             if not is_loaded:
-                Xnp = transformer.fit_transform(X, y, **fit_params)
+                transformer.fit(X, y, **fit_params)
+
+            transformed_data = transformer.transform(X)
+
+            if isinstance(transformed_data, Tuple):
+                X, y = transformed_data
 
             else:
-                Xnp = transformer.transform(X)
+                Xnp = transformed_data
 
-            # reshape input data
-            if Xnp.shape != X.shape:
-                if isinstance(X, pd.DataFrame):
-                    X = X.iloc[:, transformer.get_support()]
+                # reshape input data
+                if Xnp.shape != X.shape:
+                    if isinstance(X, pd.DataFrame):
+                        X = X.iloc[:, transformer.get_support()]
 
                 else:
-                    X = Xnp
+                    X = pd.DataFrame(Xnp)
 
         # save transformer
         if not is_loaded:
