@@ -26,9 +26,11 @@ class TestPlotter(unittest.TestCase):
         from sklearn.datasets import make_classification
         from sklearn.model_selection import cross_validate
         import lazygrid as lg
+        import pandas as pd
 
         lg.database.drop_db("./database/database.sqlite")
         X, y = make_classification(random_state=42)
+        X = pd.DataFrame(X)
 
         model1 = lg.lazy_estimator.LazyPipeline([("ridge", RidgeClassifier())])
         model2 = lg.lazy_estimator.LazyPipeline([("logreg", LogisticRegression())])

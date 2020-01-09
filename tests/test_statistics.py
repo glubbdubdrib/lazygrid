@@ -82,8 +82,8 @@ class TestStatistics(unittest.TestCase):
 
         best_idx, best_solutions_idx, pvalues = lg.statistics.find_best_solution(val_scores)
 
-        self.assertEqual(best_idx, 0)
-        self.assertEqual(best_solutions_idx, [0, 4])
+        self.assertEqual(best_idx, 1)
+        self.assertEqual(best_solutions_idx, [0, 1, 4, 5])
 
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestStatistics)

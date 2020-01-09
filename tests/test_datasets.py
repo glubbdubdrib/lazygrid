@@ -26,7 +26,7 @@ class TestDatasets(unittest.TestCase):
         import lazygrid as lg
 
         datasets = lg.datasets.fetch_datasets(task="classification", update_data=True)
-        self.assertEqual(len(datasets), 716)
+        self.assertTrue(len(datasets) >= 717)
 
     def test_load_openml_data(self):
 

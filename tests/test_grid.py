@@ -27,12 +27,12 @@ class TestGrid(unittest.TestCase):
             self.assertTrue(isinstance(pipeline, Pipeline))
     
     def test_generate_grid_search(self):
-        
-        import keras
-        from keras import Sequential
-        from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+
+        from tensorflow import keras
+        from tensorflow.keras import Sequential
+        from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
         import lazygrid as lg
-        from keras.wrappers.scikit_learn import KerasClassifier
+        from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 
         # define keras model generator
         def create_keras_model(input_shape, optimizer, n_classes):
