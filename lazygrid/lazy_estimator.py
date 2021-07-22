@@ -114,8 +114,8 @@ class LazyPipeline(Pipeline):
     """
 
     def __init__(self, steps, database: str = "./database/", verbose: bool = False):
-        super().__init__(steps, memory=None, verbose=verbose)
         self.database = database
+        super().__init__(steps, memory=None, verbose=verbose)
 
     # TODO: fit_params sould be checked
     def fit(self, X: pd.DataFrame, y: Iterable = None, **fit_params):
