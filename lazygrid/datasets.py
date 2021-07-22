@@ -106,6 +106,9 @@ def load_openml_dataset(data_id: int = None, dataset_name: str = None) -> (np.nd
         else:
             x, y = fetch_openml(name=dataset_name, return_X_y=True)
 
+        if isinstance(x, pd.DataFrame):
+            x = x.values
+
         if not isinstance(x, np.ndarray):
             x = x.toarray()
 
